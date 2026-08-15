@@ -9,8 +9,8 @@ import { TextAnswerInput } from '../../components/TextAnswerInput';
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion';
 
 const HOLD_MS = 400;
+const HOLD_MS_TASK = 750;
 const HOLD_MS_REDUCED = 150;
-const HINT_ATTEMPT_THRESHOLD = 2;
 
 // One shell for every step type in story.ts (choice / text / task / code) so the
 // entrance/exit choreography and progress bookkeeping never diverge between them
@@ -29,6 +29,7 @@ export function StoryStepScene() {
   const [textValue, setTextValue] = useState('');
   const [codeStatus, setCodeStatus] = useState<'idle' | 'incorrect' | 'correct'>('idle');
   const [codeAttempts, setCodeAttempts] = useState(0);
+  const [hintRevealed, setHintRevealed] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
 
   // Reset local per-step state whenever a new step is shown.
@@ -38,6 +39,7 @@ export function StoryStepScene() {
     setTextValue('');
     setCodeStatus('idle');
     setCodeAttempts(0);
+    setHintRevealed(false);
     setIsExiting(false);
   }, [step.id]);
 
@@ -97,7 +99,10 @@ export function StoryStepScene() {
       dispatch({ type: 'ANSWER_STEP', stepId: step.id, value });
     }
 
-    const holdMs = prefersReducedMotion ? HOLD_MS_REDUCED : HOLD_MS;
+    // The physical-task confirmation holds noticeably longer than a normal
+    // answer — this beat changes the rules of the experience (§6) and shouldn't
+    // resolve at the same tempo as a quick chip tap.
+    const holdMs = prefersReducedMotion ? HOLD_MS_REDUCED : step.type === 'task' ? HOLD_MS_TASK : HOLD_MS;
     window.setTimeout(() => {
       const advance = () => {
         dispatch(isFinalStep ? { type: 'STEPS_DONE' } : { type: 'ADVANCE_STEP' });
@@ -158,15 +163,23 @@ export function StoryStepScene() {
     }
   }
 
+  // Task + Code steps together represent one physical-clue beat — they get
+  // the same heavier, more spacious treatment (§6) rather than reading as
+  // ordinary questions.
+  const isPhysicalBeat = step.type === 'task' || step.type === 'code';
+
   return (
-    <section className="story-step-scene" aria-label={`Step ${progress.current} of ${progress.total}`}>
+    <section
+      className={`story-step-scene${isPhysicalBeat ? ' story-step-scene--task' : ''}`}
+      aria-label={`Шаг ${progress.current} из ${progress.total}`}
+    >
       <ProgressIndicator current={progress.current} total={progress.total} />
       <div className="story-step-scene__content" ref={contentRef}>
         {step.eyebrow ? <p className="story-step-scene__eyebrow">{step.eyebrow}</p> : null}
         <h1 className="story-step-scene__text">{step.text}</h1>
 
         {step.type === 'choice' ? (
-          <div className="story-step-scene__answers" role="group" aria-label="Answers">
+          <div className="story-step-scene__answers" role="group" aria-label="Варианты ответа">
             {step.answers.map((answer) => (
               <AnswerChip
                 key={answer.id}
@@ -186,7 +199,7 @@ export function StoryStepScene() {
               onChange={setTextValue}
               onSubmit={handleTextSubmit}
               placeholder={step.placeholder}
-              submitLabel={step.submitLabel ?? 'Continue'}
+              submitLabel={step.submitLabel ?? 'Продолжить'}
               disabled={isExiting}
             />
           </div>
@@ -197,7 +210,7 @@ export function StoryStepScene() {
             <p className="story-step-scene__instruction story-step-scene__body-item">{step.instruction}</p>
             <div className="story-step-scene__body-item">
               <AnswerChip
-                label={step.continueLabel ?? 'Continue'}
+                label={step.continueLabel ?? 'Продолжить'}
                 selected={taskConfirmed}
                 disabled={isExiting}
                 onSelect={handleTaskConfirm}
@@ -217,18 +230,28 @@ export function StoryStepScene() {
                 }}
                 onSubmit={handleCodeSubmit}
                 placeholder={step.placeholder}
-                submitLabel={step.submitLabel ?? 'Submit'}
+                submitLabel={step.submitLabel ?? 'Проверить'}
                 disabled={isExiting}
                 status={codeStatus === 'correct' ? 'correct' : 'idle'}
               />
             </div>
             {codeStatus === 'incorrect' ? (
               <p className="story-step-scene__feedback" role="status">
-                {step.incorrectMessage ?? 'Not quite.'}
+                {step.incorrectMessage ?? 'Не совсем.'}
               </p>
             ) : null}
-            {step.hint && codeAttempts >= HINT_ATTEMPT_THRESHOLD && codeStatus !== 'correct' ? (
-              <p className="story-step-scene__hint">{step.hint}</p>
+            {step.hint && codeAttempts >= 1 && codeStatus !== 'correct' ? (
+              hintRevealed ? (
+                <p className="story-step-scene__hint">{step.hint}</p>
+              ) : (
+                <button
+                  type="button"
+                  className="story-step-scene__hint-action"
+                  onClick={() => setHintRevealed(true)}
+                >
+                  Подсказка
+                </button>
+              )
             ) : null}
           </>
         ) : null}

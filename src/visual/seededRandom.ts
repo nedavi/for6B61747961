@@ -12,6 +12,8 @@ export function mulberry32(seed: number): () => number {
   };
 }
 
+export type StarLayer = 'far' | 'near';
+
 export interface StarSeed {
   x: number; // 0..1, fraction of viewport width
   y: number; // 0..1, fraction of viewport height
@@ -19,23 +21,45 @@ export interface StarSeed {
   baseOpacity: number;
   twinkleSpeed: number;
   twinkleOffset: number;
+  layer: StarLayer;
+  /** Pointer-parallax multiplier in px, tiny — depth cue only, never chases the pointer. */
+  parallax: number;
 }
 
 const STAR_SEED = 1337;
-const STAR_COUNT = 220;
+
+// Two depth layers so relative movement (twinkle timing + pointer parallax)
+// reads as depth rather than a single flat field of dots (see AmbientBackground §11).
+// 'far': more numerous, smaller, dimmer, minimal parallax. 'near': fewer, slightly
+// larger/brighter, a touch more parallax — still within the 2-4px ceiling from DESIGN.md.
+const FAR_COUNT = 160;
+const NEAR_COUNT = 60;
 
 // Computed once at module load — identical for the lifetime of the tab,
 // regardless of how many times AmbientBackground re-renders or story steps change.
 export const STARS: StarSeed[] = (() => {
   const random = mulberry32(STAR_SEED);
-  return Array.from({ length: STAR_COUNT }, () => ({
+  const far: StarSeed[] = Array.from({ length: FAR_COUNT }, () => ({
     x: random(),
     y: random(),
-    radius: 0.5 + random() * 1.1,
-    baseOpacity: 0.25 + random() * 0.55,
-    twinkleSpeed: 0.15 + random() * 0.35,
+    radius: 0.4 + random() * 0.7,
+    baseOpacity: 0.2 + random() * 0.4,
+    twinkleSpeed: 0.15 + random() * 0.3,
     twinkleOffset: random() * Math.PI * 2,
+    layer: 'far' as const,
+    parallax: 1.4 + random() * 0.8,
   }));
+  const near: StarSeed[] = Array.from({ length: NEAR_COUNT }, () => ({
+    x: random(),
+    y: random(),
+    radius: 0.9 + random() * 1.3,
+    baseOpacity: 0.4 + random() * 0.5,
+    twinkleSpeed: 0.2 + random() * 0.4,
+    twinkleOffset: random() * Math.PI * 2,
+    layer: 'near' as const,
+    parallax: 2.6 + random() * 1.4,
+  }));
+  return [...far, ...near];
 })();
 
 export const GRAIN_SEED = 4242;

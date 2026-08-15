@@ -36,7 +36,7 @@ export function getBackgroundPhase(
   totalSteps: number,
 ): BackgroundPhase {
   if (storyPhase === 'intro') return 'intro';
-  if (storyPhase === 'space-transition' || storyPhase === 'earth-placeholder') return 'space-transition';
+  if (storyPhase === 'space-transition' || storyPhase === 'earth') return 'space-transition';
   if (storyPhase === 'empty-beat') return 'late';
 
   if (currentStep && (currentStep.type === 'task' || currentStep.type === 'code')) return 'physical-task';

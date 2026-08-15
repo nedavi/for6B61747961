@@ -3,11 +3,12 @@ import { IntroScene } from '../scenes/intro/IntroScene';
 import { StoryStepScene } from '../scenes/story/StoryStepScene';
 import { EmptyBeatScene } from '../scenes/story/EmptyBeatScene';
 import { TransitionScene } from '../scenes/transition/TransitionScene';
-import { EarthPlaceholderScene } from '../scenes/earth/EarthPlaceholderScene';
+import { EarthJourneyScene } from '../scenes/earth/EarthJourneyScene';
 
 // Renders exactly one Interactive-mode scene at a time, keyed off storyPhase
-// (ARCHITECTURE.md §1, §5). The Cinematic-mode document (Earth journey onward)
-// arrives in Milestone 2 — 'earth-placeholder' is this milestone's stand-in stop.
+// (ARCHITECTURE.md §1, §5). 'earth' now mounts the real scroll-driven journey —
+// the WebGL Earth itself lives in PersistentVisualLayer (mounted separately in
+// App.tsx), not here; this only renders the DOM half (pin/scroll-hint/markers).
 export function ExperienceRouter() {
   const { state } = useExperience();
 
@@ -20,8 +21,8 @@ export function ExperienceRouter() {
       return <EmptyBeatScene />;
     case 'space-transition':
       return <TransitionScene />;
-    case 'earth-placeholder':
-      return <EarthPlaceholderScene />;
+    case 'earth':
+      return <EarthJourneyScene />;
     default:
       return null;
   }

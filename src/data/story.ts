@@ -63,62 +63,65 @@ export function getProgress(steps: StoryStep[], index: number): { current: numbe
   return { current, total: beat };
 }
 
-// Prototype copy for Milestone 1 — placeholder content, will be replaced.
+// Prototype copy, Russian — temporary content, will be replaced with the real
+// apartment clue and final copy before launch. See ARCHITECTURE.md §4.
 export const story: StoryStep[] = [
   {
     id: 'disappear',
     type: 'choice',
-    text: 'If you could disappear for a few days, what would you choose?',
+    text: 'Если бы можно было исчезнуть на несколько дней — что бы ты выбрала?',
     answers: [
-      { id: 'warm', label: 'Somewhere warm' },
-      { id: 'alive', label: 'Somewhere alive' },
-      { id: 'quiet', label: 'Somewhere quiet' },
+      { id: 'warm', label: 'Туда, где тепло' },
+      { id: 'alive', label: 'Туда, где всё кипит' },
+      { id: 'quiet', label: 'Туда, где тихо' },
     ],
   },
   {
     id: 'anywhere',
     type: 'text',
-    text: "Where would you go if you didn't have to think about it?",
-    placeholder: 'Anywhere...',
-    submitLabel: 'Continue',
+    text: 'Если бы прямо сейчас можно было оказаться где угодно — куда бы ты отправилась?',
+    placeholder: 'Напиши любое место...',
+    submitLabel: 'Продолжить',
   },
   {
     id: 'matters-more',
     type: 'choice',
-    text: 'What matters more?',
+    text: 'Что для тебя важнее?',
     answers: [
-      { id: 'place', label: 'The place' },
-      { id: 'people', label: 'The people' },
-      { id: 'story', label: 'The story' },
+      { id: 'place', label: 'Само место' },
+      { id: 'people', label: 'Люди рядом' },
+      { id: 'story', label: 'История, которая останется' },
     ],
   },
   {
     id: 'physical-clue',
     type: 'task',
-    eyebrow: 'NOT EVERYTHING IS ON THIS SCREEN',
-    text: 'Stand up for this one.',
-    instruction: 'Find the place where you see yourself every day.',
-    continueLabel: 'I found it',
+    eyebrow: 'НЕ ВСЕ ОТВЕТЫ ЕСТЬ НА ЭТОМ ЭКРАНЕ',
+    text: 'Для следующего придётся встать.',
+    instruction: 'Найди место, где ты видишь себя каждый день.',
+    continueLabel: 'Я нашла',
   },
   {
     id: 'clue-code',
     type: 'code',
-    text: 'What did you find?',
-    placeholder: 'Type the word...',
-    acceptedAnswers: ['orbit'],
-    incorrectMessage: 'Not quite.',
-    hint: 'Look closer at the clue.',
-    submitLabel: 'Submit',
+    text: 'Что ты там нашла?',
+    placeholder: 'Введи слово...',
+    // Accept both the Latin word and its Russian transliteration — kept
+    // internal only, never rendered (see normalizeAnswer() below).
+    acceptedAnswers: ['orbit', 'орбит'],
+    incorrectMessage: 'Не совсем.',
+    hint: 'Посмотри внимательнее на то, что ты нашла.',
+    submitLabel: 'Проверить',
     continuesProgress: true,
   },
   {
     id: 'trust',
     type: 'choice',
-    text: 'One last thing. Do you trust me?',
+    text: 'Последний вопрос. Ты мне доверяешь?',
     isFinal: true,
     answers: [
-      { id: 'yes', label: 'Yes' },
-      { id: 'think-so', label: 'I think so' },
+      { id: 'yes', label: 'Да' },
+      { id: 'think-so', label: 'Кажется, да' },
     ],
   },
 ];

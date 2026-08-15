@@ -18,7 +18,7 @@ export function TextAnswerInput({
   onChange,
   onSubmit,
   placeholder,
-  submitLabel = 'Continue',
+  submitLabel = 'Продолжить',
   disabled = false,
   status = 'idle',
   ref,
