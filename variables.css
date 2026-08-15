@@ -1,0 +1,89 @@
+:root {
+  /* Colors */
+  --color-canvas: #06060a;
+  --color-canvas-elevated: #111118;
+  --color-text-primary: #f3ede4;
+  --color-text-secondary: #9a97a6;
+  --color-text-tertiary: #6f6c7a;
+  --color-accent-primary: #8a7cff;
+  --color-accent-atmosphere: #5fc9e8;
+  --color-accent-reveal: #e3c081;
+  --color-accent-rose: #c99b8f;
+  --color-border-subtle: rgba(243, 237, 228, 0.10);
+
+  /* Glow */
+  --glow-primary: rgba(138, 124, 255, 0.32);
+  --glow-atmosphere: rgba(95, 201, 232, 0.35);
+  --glow-reveal: rgba(227, 192, 129, 0.35);
+
+  /* Surfaces */
+  --surface-canvas: var(--color-canvas);
+  --surface-elevated: var(--color-canvas-elevated);
+  --surface-answer-selected: rgba(138, 124, 255, 0.12);
+
+  /* Typography — Font Families */
+  --font-ppneuemontreal: 'PPNeueMontreal', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Typography — Scale */
+  --text-micro: 12px;
+  --leading-micro: 1.5;
+  --text-label: 14px;
+  --leading-label: 1.2;
+  --tracking-label: 0.35px;
+  --text-body: 18px;
+  --leading-body: 1.5;
+  --text-answer: 24px;
+  --leading-answer: 1.25;
+  --tracking-answer: -0.48px;
+  --text-waypoint: 27px;
+  --leading-waypoint: 1;
+  --text-transition: 36px;
+  --leading-transition: 1.2;
+  --text-question: 42px;
+  --leading-question: 1.2;
+  --tracking-question: -1.68px;
+  --text-destination: 48px;
+  --leading-destination: 1.1;
+  --tracking-destination: -1.68px;
+  --text-reveal: 78px;
+  --leading-reveal: 1.1;
+  --tracking-reveal: -3.12px;
+  --text-display: 113px;
+  --leading-display: 1.1;
+  --tracking-display: -4.52px;
+
+  /* Typography — Weights */
+  --font-weight-light: 200;
+  --font-weight-regular: 400;
+  --font-weight-semibold: 600;
+
+  /* Spacing */
+  --spacing-unit: 6px;
+  --spacing-6: 6px;
+  --spacing-12: 12px;
+  --spacing-18: 18px;
+  --spacing-24: 24px;
+  --spacing-30: 30px;
+  --spacing-36: 36px;
+  --spacing-60: 60px;
+  --spacing-96: 96px;
+  --spacing-120: 120px;
+
+  /* Layout */
+  --content-max-width: 640px;
+  --scene-padding: 96px;
+  --element-gap: 18px;
+
+  /* Border Radius */
+  --radius-full: 9999px;
+  --radius-answer: 16px;
+  --radius-surface: 24px;
+
+  /* Motion */
+  --duration-micro: 200ms;
+  --duration-text: 600ms;
+  --duration-scene: 1200ms;
+  --duration-cinematic: 2400ms;
+  --ease-cinematic: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+}

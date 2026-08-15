@@ -1,0 +1,466 @@
+@import '../../variables.css';
+
+/* ---------- Reset ---------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+input {
+  font: inherit;
+  color: inherit;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---------- Base ---------- */
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-text-primary);
+  font-family: var(--font-ppneuemontreal);
+  font-weight: var(--font-weight-regular);
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'ss01' on;
+}
+
+#root {
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-accent-primary) 35%, transparent);
+  color: var(--color-text-primary);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- Ambient Background (persistent, behind every Interactive-mode scene) ---------- */
+
+.ambient-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: var(--color-canvas);
+  pointer-events: none;
+}
+
+.ambient-background__nebula {
+  position: absolute;
+  inset: -20%;
+  transition: opacity 2.8s ease;
+  will-change: opacity;
+}
+
+.ambient-background__nebula--violet {
+  background: radial-gradient(
+    circle at 30% 35%,
+    color-mix(in srgb, var(--color-accent-primary) 40%, transparent) 0%,
+    transparent 55%
+  );
+  animation: ambient-drift-a 52s ease-in-out infinite alternate;
+}
+
+.ambient-background__nebula--blue {
+  background: radial-gradient(
+    circle at 72% 68%,
+    color-mix(in srgb, var(--color-accent-atmosphere) 38%, transparent) 0%,
+    transparent 55%
+  );
+  animation: ambient-drift-b 64s ease-in-out infinite alternate;
+}
+
+@keyframes ambient-drift-a {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(2%, -3%) scale(1.05);
+  }
+}
+
+@keyframes ambient-drift-b {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(-3%, 2%) scale(1.04);
+  }
+}
+
+.ambient-background__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.ambient-background__grain {
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat;
+  background-size: 128px 128px;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+}
+
+/* ---------- Shared scene shell ---------- */
+
+.intro-scene,
+.story-step-scene,
+.empty-beat-scene,
+.transition-scene,
+.earth-placeholder-scene {
+  position: relative;
+  z-index: 1;
+  min-height: 100dvh;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* ---------- Intro Title Block ---------- */
+
+.intro-scene {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-36);
+}
+
+.intro-scene__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--element-gap);
+  max-width: var(--content-max-width);
+  text-align: center;
+}
+
+.intro-scene__kicker {
+  font-size: var(--text-label);
+  line-height: var(--leading-label);
+  letter-spacing: var(--tracking-label);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.intro-scene__title {
+  font-size: clamp(2.5rem, 9vw, 4.75rem);
+  line-height: var(--leading-reveal);
+  letter-spacing: -0.03em;
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-primary);
+}
+
+.intro-scene__supporting {
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  font-weight: var(--font-weight-light);
+  color: var(--color-text-secondary);
+}
+
+.intro-scene__action {
+  margin-top: var(--spacing-18);
+}
+
+/* ---------- Story Step Scene (choice / text / task / code) ---------- */
+
+.story-step-scene {
+  display: flex;
+  align-items: center;
+  padding: var(--scene-padding);
+}
+
+.story-step-scene__content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-30);
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+}
+
+.story-step-scene__eyebrow {
+  font-size: var(--text-label);
+  line-height: var(--leading-label);
+  letter-spacing: var(--tracking-label);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.story-step-scene__text {
+  font-size: clamp(1.75rem, 5vw, 2.625rem);
+  line-height: var(--leading-question);
+  letter-spacing: var(--tracking-question);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-primary);
+}
+
+.story-step-scene__instruction {
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  font-weight: var(--font-weight-light);
+  color: var(--color-text-secondary);
+}
+
+.story-step-scene__answers {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--spacing-18);
+}
+
+.story-step-scene__feedback,
+.story-step-scene__hint {
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  font-weight: var(--font-weight-light);
+  color: var(--color-text-tertiary);
+}
+
+.story-step-scene__hint {
+  font-style: italic;
+}
+
+/* ---------- Progress Indicator ---------- */
+
+.progress-indicator {
+  position: fixed;
+  left: var(--spacing-36);
+  bottom: var(--spacing-36);
+  z-index: 2;
+  font-size: var(--text-label);
+  line-height: var(--leading-label);
+  letter-spacing: var(--tracking-label);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-tertiary);
+  opacity: 0.6;
+}
+
+/* ---------- Answer Button / Answer Chip ---------- */
+
+.answer-chip {
+  min-height: 44px;
+  padding: var(--spacing-12) var(--spacing-24);
+  border-radius: var(--radius-answer);
+  border: 1px solid var(--color-border-subtle);
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: var(--text-answer);
+  line-height: var(--leading-answer);
+  letter-spacing: var(--tracking-answer);
+  font-weight: var(--font-weight-regular);
+  transition:
+    border-color var(--duration-micro) var(--ease-standard),
+    background-color var(--duration-micro) var(--ease-standard),
+    box-shadow var(--duration-micro) var(--ease-standard);
+}
+
+.answer-chip:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-accent-primary) 55%, transparent);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--glow-primary) 60%, transparent);
+}
+
+.answer-chip--selected {
+  background: var(--surface-answer-selected);
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 28px var(--glow-primary);
+}
+
+.answer-chip:disabled {
+  cursor: default;
+}
+
+.answer-chip:disabled:not(.answer-chip--selected) {
+  opacity: 0.4;
+}
+
+/* ---------- Text Answer Input (free text + code) ---------- */
+
+.text-answer-input {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-18);
+  width: 100%;
+  max-width: 480px;
+}
+
+.text-answer-input__field {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  font-family: var(--font-ppneuemontreal);
+  font-size: clamp(1.125rem, 3.4vw, 1.5rem);
+  line-height: 1.3;
+  font-weight: var(--font-weight-regular);
+  padding: var(--spacing-6) 0;
+  min-height: 44px;
+  transition:
+    border-color var(--duration-micro) var(--ease-standard),
+    box-shadow var(--duration-micro) var(--ease-standard);
+}
+
+.text-answer-input__field::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.text-answer-input__field:focus {
+  outline: none;
+  border-bottom-color: var(--color-accent-primary);
+  box-shadow: 0 1px 0 0 var(--color-accent-primary), 0 8px 20px -8px var(--glow-primary);
+}
+
+.text-answer-input--correct .text-answer-input__field {
+  border-bottom-color: var(--color-accent-primary);
+  box-shadow: 0 1px 0 0 var(--color-accent-primary), 0 8px 24px -6px var(--glow-primary);
+}
+
+.text-answer-input__submit {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 var(--spacing-12);
+  color: var(--color-text-secondary);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  font-weight: var(--font-weight-semibold);
+  transition: color var(--duration-micro) var(--ease-standard);
+}
+
+.text-answer-input__submit:hover:not(:disabled) {
+  color: var(--color-text-primary);
+}
+
+.text-answer-input__submit:disabled {
+  color: var(--color-text-tertiary);
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---------- Empty Beat ---------- */
+
+.empty-beat-scene {
+}
+
+/* ---------- Space Transition ---------- */
+
+.transition-scene {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.transition-scene__line {
+  position: absolute;
+  max-width: var(--content-max-width);
+  padding: 0 var(--spacing-36);
+  text-align: center;
+  font-size: clamp(1.5rem, 4vw, 2.25rem);
+  line-height: var(--leading-transition);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-primary);
+  opacity: 0;
+}
+
+/* ---------- Earth Placeholder (temporary, Milestone 1 only) ---------- */
+
+.earth-placeholder-scene {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.earth-placeholder-scene__text {
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  font-weight: var(--font-weight-light);
+  color: var(--color-text-secondary);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 640px) {
+  .story-step-scene,
+  .intro-scene {
+    padding: var(--spacing-24);
+  }
+
+  .story-step-scene__answers {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .answer-chip {
+    text-align: center;
+  }
+
+  .text-answer-input {
+    max-width: 100%;
+  }
+
+  .progress-indicator {
+    left: var(--spacing-24);
+    bottom: var(--spacing-24);
+  }
+}
