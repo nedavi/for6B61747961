@@ -1,7 +1,7 @@
 import { useMemo, type RefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
-import { ShaderMaterial, SRGBColorSpace, Vector2 } from 'three';
+import { ShaderMaterial, SRGBColorSpace } from 'three';
 import type { Mesh } from 'three';
 import { earthFragmentShader, earthVertexShader } from './earthShader';
 import { SUN_DIRECTION } from './sunDirection';
@@ -49,14 +49,6 @@ export function Earth({ meshRef, materialRef }: EarthProps) {
       normalStrength: { value: 0.35 },
       uOpacity: { value: 0 },
       uTime: { value: 0 },
-      // Regional detail insert (three/RegionalDetail.tsx) — dayMap is a safe
-      // placeholder for regionalMap since regionalBlend starts at 0, so
-      // nothing needs to load before this material can render.
-      regionalMap: { value: dayMap },
-      regionalUvMin: { value: new Vector2(0, 0) },
-      regionalUvMax: { value: new Vector2(0, 0) },
-      regionalBlend: { value: 0 },
-      hasRegional: { value: 0 },
     }),
     [dayMap, nightMap, normalMap, specularMap],
   );

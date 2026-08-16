@@ -40,7 +40,7 @@ void main() {
   vec3 shadowColor = vec3(0.05, 0.06, 0.09);
   vec3 color = mix(shadowColor, litColor, lit);
 
-  float alpha = density * uOpacity * mix(0.22, 0.62, lit) * layerAlphaScale;
+  float alpha = density * uOpacity * mix(0.14, 0.38, lit) * layerAlphaScale;
   gl_FragColor = vec4(color, alpha);
 }
 `;

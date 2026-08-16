@@ -29,17 +29,6 @@ uniform float normalStrength;
 uniform float uOpacity;
 uniform float uTime;
 
-// Regional detail insert (data/regionalTextures.ts) — a second, higher-
-// density crop of the SAME source imagery blended in only within a small UV
-// window around the currently-approached destination. regionalBlend (0..1)
-// is proximity-driven from three/RegionalDetail.tsx; hasRegional guards
-// against sampling before a region has ever been assigned.
-uniform sampler2D regionalMap;
-uniform vec2 regionalUvMin;
-uniform vec2 regionalUvMax;
-uniform float regionalBlend;
-uniform float hasRegional;
-
 // NOTE: cameraPosition is auto-declared AND auto-populated by three.js's
 // shader preamble for every material — redeclaring it here is a compile
 // error ("redefinition"), a real bug caught only by actually running this in
@@ -112,17 +101,6 @@ void main() {
   vec3 dayColor = texture2D(dayMap, vUv).rgb;
   vec3 nightColor = texture2D(nightMap, vUv).rgb;
   float specMask = texture2D(specularMap, vUv).r;
-
-  // Regional detail insert — no branching needed: localUv lands outside
-  // 0..1 when vUv is outside the crop window, which makes edgeDist negative,
-  // which smoothstep clamps to 0 automatically. A soft 12%-of-crop-width
-  // falloff at the edges is what keeps the seam from being a hard rectangle.
-  vec2 regionalRange = max(regionalUvMax - regionalUvMin, vec2(1e-5));
-  vec2 localUv = (vUv - regionalUvMin) / regionalRange;
-  vec2 edgeDist = min(localUv, 1.0 - localUv);
-  float regionalMask = smoothstep(0.0, 0.12, min(edgeDist.x, edgeDist.y));
-  vec3 regionalColor = texture2D(regionalMap, clamp(localUv, 0.0, 1.0)).rgb;
-  dayColor = mix(dayColor, regionalColor, regionalMask * regionalBlend * hasRegional);
 
   float sunDot = dot(N, normalize(sunDirection));
   // A wider terminator band than a hard day/night line — real Earth's

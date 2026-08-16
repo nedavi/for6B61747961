@@ -9,7 +9,6 @@ import { StarField } from './StarField';
 import { GalaxyField } from './GalaxyField';
 import { CameraRig } from './CameraRig';
 import { WaypointMarkers } from './WaypointMarkers';
-import { RegionalDetail } from './RegionalDetail';
 import { SUN_DIRECTION } from './sunDirection';
 import { EARTH_REVEAL_CAMERA } from '../data/journey';
 import { revealCameraStore, REVEAL_START_DISTANCE } from './revealCameraStore';
@@ -105,7 +104,6 @@ export function EarthCanvas({ revealed, onRevealed }: EarthCanvasProps) {
           <CloudLayer deck="high" materialRef={cloudHighMaterialRef} />
           <WaypointMarkers earthMeshRef={earthMeshRef} />
         </group>
-        <RegionalDetail earthMaterialRef={earthMaterialRef} />
         <AtmosphereGlow materialRef={atmosphereMaterialRef} />
         <CameraRig earthGroupRef={earthGroupRef} />
       </Suspense>
