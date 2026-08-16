@@ -5,7 +5,6 @@ import { NoToneMapping, SRGBColorSpace, type Group, type Material, type Mesh, ty
 import { Earth } from './Earth';
 import { AtmosphereGlow } from './AtmosphereGlow';
 import { StarField } from './StarField';
-import { GalaxyField } from './GalaxyField';
 import { CameraRig } from './CameraRig';
 import { WaypointMarkers } from './WaypointMarkers';
 import { SUN_DIRECTION } from './sunDirection';
@@ -82,6 +81,22 @@ export function EarthCanvas({ revealed, onRevealed }: EarthCanvasProps) {
         onUpdate: () => {
           for (const material of earthMaterialsRef.current) material.opacity = modelOpacity.value;
         },
+        onComplete: () => {
+          // Earth's own surface material is forced `transparent = true` only
+          // so this fade can animate its opacity — the source file's alphaMode
+          // was OPAQUE, and leaving it flagged transparent forever afterward
+          // puts it in three.js's transparent render queue permanently, which
+          // sorts by object instead of per-triangle. With the clouds shell
+          // (genuinely, permanently transparent — its texture has real alpha
+          // cutout) sitting at nearly the same radius, that per-object sort
+          // produces inconsistent depth ordering between the two coincident
+          // spheres — worst at the poles' thin triangles — which read as a
+          // banding/fan artifact with no connection to either mesh's own
+          // geometry, material, or texture (ARCHITECTURE.md §K9). Once the
+          // fade finishes, Earth's surface is opaque again for the rest of
+          // its life, exactly like the source file intended.
+          if (earthMaterialRef.current) earthMaterialRef.current.transparent = false;
+        },
       },
       prefersReducedMotion ? 0 : 0.35,
     );
@@ -96,9 +111,13 @@ export function EarthCanvas({ revealed, onRevealed }: EarthCanvasProps) {
       <ambientLight intensity={0.05} />
       <directionalLight position={sunLightPosition} intensity={1.2} />
       <StarField />
-      <Suspense fallback={null}>
-        <GalaxyField revealed={revealed} />
-      </Suspense>
+      {/* GalaxyField (three/GalaxyField.tsx) temporarily disabled — its
+          current placement (a subtle corner accent near Earth) isn't its
+          intended home; the user wants it as an interactive background for
+          the Intro/Question/Answer flow instead (see ARCHITECTURE.md §K9's
+          "not done this pass" note), and having it visible here in the
+          meantime just looks like a stray leftover next to Earth rather
+          than a deliberate choice. Re-enable once it's actually relocated. */}
       <Suspense fallback={null}>
         <group ref={earthGroupRef}>
           <Earth meshRef={earthMeshRef} materialRef={earthMaterialRef} materialsRef={earthMaterialsRef} />
