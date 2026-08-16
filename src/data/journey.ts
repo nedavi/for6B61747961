@@ -49,6 +49,18 @@ export interface CityPostcard {
   poster: string;
 }
 
+/** Supplementary destination info shown in the left-side DestinationSidebar
+ *  (scenes/earth/DestinationSidebar.tsx) once the camera has settled on this
+ *  waypoint — description, day/night photos, and the main landmarks. Optional,
+ *  same no-op pattern as `postcard`: a waypoint with no `info` simply shows no
+ *  sidebar. `photos` is itself optional within `info` — a description-only
+ *  entry (no photos yet) still renders correctly, just without the photo row. */
+export interface CityInfo {
+  description: string;
+  photos?: { day: string; night: string };
+  landmarks?: string[];
+}
+
 export interface Waypoint {
   id: string;
   /** Russian display label rendered in the DOM marker (WaypointMarkers), e.g. "МОСКВА". */
@@ -60,6 +72,7 @@ export interface Waypoint {
    *  hint consumed by timeline.ts, NOT a normalized progress value. */
   durationWeight?: number;
   postcard?: CityPostcard;
+  info?: CityInfo;
 }
 
 // TEST DATA — validates the scroll → rotation → camera mechanic with real
@@ -85,6 +98,13 @@ export const journey: Waypoint[] = [
     // (see ARCHITECTURE.md §K4). Add `{ video, poster }` here once the
     // credit top-up + generation pass happens; CityPostcard.tsx already
     // no-ops cleanly for any waypoint without one.
+    info: {
+      description:
+        'Столица, где императорские дворцы соседствуют с небоскрёбами, а древние хутуны прячутся в паре шагов от неоновых проспектов.',
+      // photos: intentionally unset — no real day/night pair generated yet;
+      // DestinationSidebar renders cleanly without them, same as `postcard`.
+      landmarks: ['Запретный город', 'Великая Китайская стена', 'Площадь Тяньаньмэнь'],
+    },
   },
   {
     id: 'tokyo',
@@ -99,6 +119,11 @@ export const journey: Waypoint[] = [
       lookAtOffset: { x: -0.19, y: 0.13, z: 0 },
       fov: 40,
     },
+    info: {
+      description:
+        'Город, где всё одновременно: храмы XVII века, самый плотный неон в мире и тишина садов в двух шагах от станции метро.',
+      landmarks: ['Токийская башня', 'Храм Сэнсо-дзи', 'Перекрёсток Сибуя'],
+    },
   },
   {
     id: 'cairo',
@@ -112,6 +137,11 @@ export const journey: Waypoint[] = [
       positionOffset: { x: -0.18, y: 0.08 },
       lookAtOffset: { x: 0.2, y: 0.1, z: 0 },
       fov: 38,
+    },
+    info: {
+      description:
+        'Мегаполис на Ниле, где пирамидам уже четыре с половиной тысячи лет, а рынок Хан-эль-Халили торгуется точно так же, как и века назад.',
+      landmarks: ['Пирамиды Гизы', 'Сфинкс', 'Каирский музей'],
     },
   },
 ];

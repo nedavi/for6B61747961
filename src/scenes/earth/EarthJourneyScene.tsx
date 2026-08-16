@@ -8,6 +8,7 @@ import { journey } from '../../data/journey';
 import { buildTimeline } from '../../data/timeline';
 import { progressStore } from '../../three/progressStore';
 import { CityPostcard } from './CityPostcard';
+import { DestinationSidebar } from './DestinationSidebar';
 
 // One viewport-height of scroll per journey stop, plus a little extra for the
 // reveal/settle bands — grows with journey.length rather than a fixed number.
@@ -117,6 +118,14 @@ export function EarthJourneyScene() {
             arrivalAt={segment.end}
             label={waypoint.label}
           />
+        );
+      })}
+      {journey.map((waypoint) => {
+        if (!waypoint.info) return null;
+        const segment = timeline.find((s) => s.waypoint?.id === waypoint.id);
+        if (!segment) return null;
+        return (
+          <DestinationSidebar key={waypoint.id} info={waypoint.info} arrivalAt={segment.end} label={waypoint.label} />
         );
       })}
     </section>
