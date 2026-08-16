@@ -31,7 +31,7 @@ interface DestinationSidebarProps {
 
 // Left-edge panel revealed once the camera has settled on a waypoint — the
 // same deliberate "one exceptional panel" allowance DESIGN.md gives Gift
-// Reveal, extended here since a description + photos + landmark list is
+// Reveal, extended here since a description + a landmark photo gallery is
 // genuinely more than a caption can carry. Sits in the negative space K2's
 // camera composition already reserves on the left (Earth is weighted
 // lower-right at every waypoint), so it doesn't compete with the globe or the
@@ -63,24 +63,17 @@ export function DestinationSidebar({ info, arrivalAt, label }: DestinationSideba
       <div ref={panelRef} className="destination-sidebar__panel" style={{ opacity: 0 }} aria-hidden="true">
         <p className="destination-sidebar__label">{label}</p>
         <p className="destination-sidebar__description">{info.description}</p>
-        {info.photos ? (
-          <div className="destination-sidebar__photos">
-            <figure className="destination-sidebar__photo">
-              <img src={info.photos.day} alt="" loading="lazy" />
-              <figcaption>День</figcaption>
-            </figure>
-            <figure className="destination-sidebar__photo">
-              <img src={info.photos.night} alt="" loading="lazy" />
-              <figcaption>Ночь</figcaption>
-            </figure>
-          </div>
-        ) : null}
-        {info.landmarks && info.landmarks.length > 0 ? (
-          <ul className="destination-sidebar__landmarks">
+        {info.landmarks.length > 0 ? (
+          <div className="destination-sidebar__landmarks">
             {info.landmarks.map((landmark) => (
-              <li key={landmark}>{landmark}</li>
+              <figure key={landmark.name} className="destination-sidebar__landmark">
+                {landmark.photo ? (
+                  <img className="destination-sidebar__landmark-photo" src={landmark.photo} alt="" loading="lazy" />
+                ) : null}
+                <figcaption>{landmark.name}</figcaption>
+              </figure>
             ))}
-          </ul>
+          </div>
         ) : null}
       </div>
     </aside>
