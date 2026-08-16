@@ -46,7 +46,11 @@ export function Earth({ meshRef, materialRef }: EarthProps) {
       normalMap: { value: normalMap },
       specularMap: { value: specularMap },
       sunDirection: { value: SUN_DIRECTION },
-      normalStrength: { value: 0.55 },
+      // Dialed back from 0.55 (§K9) now that the day map itself carries real
+      // baked shaded-relief (§K10's topo/bathymetry source) — stacking a
+      // strong procedural bump on top of already-visible real terrain read as
+      // over-noisy rather than more detailed.
+      normalStrength: { value: 0.42 },
       uOpacity: { value: 0 },
       uTime: { value: 0 },
       // Regional detail insert (three/RegionalDetail.tsx) — dayMap is a safe

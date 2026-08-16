@@ -30,16 +30,16 @@ interface CloudDeckConfig {
 // the planet (Part 3). Real multi-layer cloud photography would be nicer still,
 // but two decks of the one legitimate NASA-derived density map is a reasonable
 // depth cue without inventing cloud geography that doesn't exist.
-// Drift speeds raised ~6x and layerAlphaScale lowered — direct feedback that
-// clouds read as too large/opaque/static. The two decks still drift at
-// different (and opposite) rates so they visibly diverge rather than moving
-// as one slab.
+// Drift speeds raised ~6x in §K9, then roughly doubled again here (still more
+// dynamics requested) — direct feedback that clouds read as too
+// large/opaque/static, twice over. The two decks still drift at different
+// (and opposite) rates so they visibly diverge rather than moving as one slab.
 export const CLOUD_DECKS: Record<'low' | 'high', CloudDeckConfig> = {
-  low: { radius: 1.006, segments: 72, driftRadiansPerSecond: 0.01, initialRotation: 0, layerAlphaScale: 0.62, renderOrder: 1 },
+  low: { radius: 1.006, segments: 72, driftRadiansPerSecond: 0.02, initialRotation: 0, layerAlphaScale: 0.62, renderOrder: 1 },
   high: {
     radius: 1.014,
     segments: 56,
-    driftRadiansPerSecond: -0.006,
+    driftRadiansPerSecond: -0.012,
     initialRotation: 1.7,
     layerAlphaScale: 0.4,
     renderOrder: 2,

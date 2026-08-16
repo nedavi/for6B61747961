@@ -11,11 +11,11 @@ import { Vector3 } from 'three';
 export const SUN_DIRECTION = new Vector3(-2, 0.8, 2.2).normalize();
 
 const ROTATION_AXIS = new Vector3(0, 1, 0);
-// A full terminator sweep every ~110s — slow enough to still read as
-// "physically grounded lighting," fast enough that its movement is clearly
-// visible within a normal viewing/scroll session, not a needle that never
-// seems to move.
-const RADIANS_PER_SECOND = (Math.PI * 2) / 110;
+// A full terminator sweep every ~45s (raised from ~110s in §K9 — direct
+// follow-up feedback asking for more dynamics) — still slow enough to read
+// as "lighting," not a strobe, but now clearly moving within any short
+// viewing window instead of needing patience to notice.
+const RADIANS_PER_SECOND = (Math.PI * 2) / 45;
 
 /**
  * Advances SUN_DIRECTION around Earth's polar axis, mutating the existing

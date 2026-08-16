@@ -86,9 +86,10 @@ vec3 perturbNormal(vec3 N, vec3 V, vec2 uv) {
   float h0 = valueNoise(fineUv);
   float hX = valueNoise(fineUv + vec2(e, 0.0));
   float hY = valueNoise(fineUv + vec2(0.0, e));
-  // Raised from 0.6 — more pronounced surface relief, per direct feedback
-  // that the planet read as flat with no visible bumps.
-  vec2 fineTilt = vec2(h0 - hX, h0 - hY) * 0.85;
+  // Dialed back from 0.85 (§K9) — the day map now carries real baked relief
+  // (§K10), so this fine layer only needs to add micro-grain on top of it,
+  // not manufacture the relief itself.
+  vec2 fineTilt = vec2(h0 - hX, h0 - hY) * 0.5;
   vec3 combinedN = normalize(vec3(mapN.xy + fineTilt, mapN.z));
 
   vec3 q0 = dFdx(V);
@@ -173,16 +174,21 @@ void main() {
 
   // True view-dependent specular (Blinn-Phong half-vector) — a real ocean
   // glint that moves and appears/disappears as the camera orbits, not a
-  // fixed brightness pattern tied only to surface-vs-sun angle. Two lobes
+  // fixed brightness pattern tied only to surface-vs-sun angle. Three lobes
   // layered together read as glass/water catching direct sun rather than a
-  // single tight synthetic dot: a bright, tight core plus a softer, wider
-  // sheen spread around it.
+  // single tight synthetic dot: a bright core, a softer mid sheen, and a
+  // wide, faint outer halo for a bloom-like cinematic quality. Warmed off
+  // pure white toward gold — a "sun glint," not a clinical specular
+  // highlight — and the core exponent loosened slightly (140→110) so it
+  // reads as a soft flare rather than a hard pinpoint.
   vec3 halfVector = normalize(viewDir + normalize(sunDirection));
   float ndh = max(dot(N, halfVector), 0.0);
-  float specCore = pow(ndh, 140.0);
-  float specSheen = pow(ndh, 12.0);
-  color += vec3(0.85, 0.92, 1.0) * specCore * specMask * dayMix * 1.1;
-  color += vec3(0.75, 0.85, 1.0) * specSheen * specMask * dayMix * 0.22;
+  float specCore = pow(ndh, 110.0);
+  float specSheen = pow(ndh, 18.0);
+  float specHalo = pow(ndh, 3.5);
+  color += vec3(1.0, 0.93, 0.78) * specCore * specMask * dayMix * 1.15;
+  color += vec3(1.0, 0.9, 0.72) * specSheen * specMask * dayMix * 0.24;
+  color += vec3(1.0, 0.88, 0.68) * specHalo * specMask * dayMix * 0.05;
 
   // Faint cool fill so the unlit side reads as dark blue-black rather than
   // pure crushed black.

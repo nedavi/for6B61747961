@@ -101,8 +101,9 @@ export const journey: Waypoint[] = [
     info: {
       description:
         'Столица, где императорские дворцы соседствуют с небоскрёбами, а древние хутуны прячутся в паре шагов от неоновых проспектов.',
-      // photos: intentionally unset — no real day/night pair generated yet;
-      // DestinationSidebar renders cleanly without them, same as `postcard`.
+      // Real photographs (Wikimedia Commons, CC-licensed — see credits below),
+      // not generated, per direct instruction while Higgsfield is unavailable.
+      photos: { day: '/assets/destinations/beijing/day.webp', night: '/assets/destinations/beijing/night.webp' },
       landmarks: ['Запретный город', 'Великая Китайская стена', 'Площадь Тяньаньмэнь'],
     },
   },
@@ -122,6 +123,7 @@ export const journey: Waypoint[] = [
     info: {
       description:
         'Город, где всё одновременно: храмы XVII века, самый плотный неон в мире и тишина садов в двух шагах от станции метро.',
+      photos: { day: '/assets/destinations/tokyo/day.webp', night: '/assets/destinations/tokyo/night.webp' },
       landmarks: ['Токийская башня', 'Храм Сэнсо-дзи', 'Перекрёсток Сибуя'],
     },
   },
@@ -141,10 +143,21 @@ export const journey: Waypoint[] = [
     info: {
       description:
         'Мегаполис на Ниле, где пирамидам уже четыре с половиной тысячи лет, а рынок Хан-эль-Халили торгуется точно так же, как и века назад.',
+      photos: { day: '/assets/destinations/cairo/day.webp', night: '/assets/destinations/cairo/night.webp' },
       landmarks: ['Пирамиды Гизы', 'Сфинкс', 'Каирский музей'],
     },
   },
 ];
+
+// Photo credits (Wikimedia Commons, all CC-licensed — required by Commons'
+// hosting policy regardless of category): Beijing day — "Beijing skyline.jpg"
+// (CC BY 2.0); Beijing night — "Beijing skyline at night.JPG" (Scott
+// Meltzer); Tokyo day — "Minato City, Tokyo, Japan.jpg"; Tokyo night —
+// "Tokyo Tower at night (1).jpg" (CC BY-SA 2.0); Cairo day — "Cairo skyline,
+// Nile River, Egypt.jpg" (Vyacheslav Argenberg, CC BY 4.0); Cairo night —
+// "Egypt, Night Cairo and river Nile, Zamalek city lights.jpg". Sourced
+// directly, not Higgsfield-generated, per direct instruction while the
+// Higgsfield MCP connection is unavailable — see ARCHITECTURE.md §K10.
 
 /** Far, distant framing for the very start of the journey (progress 0) — see
  *  EarthJourneyScene's auto-reveal beat and timeline.ts's leading band. */
