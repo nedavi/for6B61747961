@@ -169,7 +169,10 @@ void main() {
   // "real electrical grid flicker at a distance," never as blinking lights.
   float shimmerPhase = hash(floor(vUv * 300.0)) * 6.2831853;
   float shimmer = 1.0 + 0.05 * sin(uTime * 0.12 + shimmerPhase);
-  vec3 gradedNight = nightColor * 0.85 * shimmer;
+  // Raised from 0.85 — dense city clusters need to be bright enough to
+  // actually trigger the new Bloom pass (§K11) and read as glowing lights,
+  // not just a slightly-lifted dark patch.
+  vec3 gradedNight = nightColor * 1.35 * shimmer;
   vec3 color = mix(gradedNight, gradedDay, dayMix);
 
   // True view-dependent specular (Blinn-Phong half-vector) — a real ocean

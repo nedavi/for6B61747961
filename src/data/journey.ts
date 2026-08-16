@@ -150,14 +150,17 @@ export const journey: Waypoint[] = [
 ];
 
 // Photo credits (Wikimedia Commons, all CC-licensed — required by Commons'
-// hosting policy regardless of category): Beijing day — "Beijing skyline.jpg"
-// (CC BY 2.0); Beijing night — "Beijing skyline at night.JPG" (Scott
-// Meltzer); Tokyo day — "Minato City, Tokyo, Japan.jpg"; Tokyo night —
-// "Tokyo Tower at night (1).jpg" (CC BY-SA 2.0); Cairo day — "Cairo skyline,
-// Nile River, Egypt.jpg" (Vyacheslav Argenberg, CC BY 4.0); Cairo night —
-// "Egypt, Night Cairo and river Nile, Zamalek city lights.jpg". Sourced
-// directly, not Higgsfield-generated, per direct instruction while the
-// Higgsfield MCP connection is unavailable — see ARCHITECTURE.md §K10.
+// hosting policy regardless of category). Landmarks, not generic skylines —
+// swapped in on direct feedback that the first pass (city skyline photos)
+// wasn't the ask, see ARCHITECTURE.md §K11. Beijing day — "20130903-Beijing-
+// Forbidden City(Gugong) 故宫 1.JPG" (Forbidden City); Beijing night —
+// "天安门夜景.jpg" (Tiananmen Gate, illuminated); Tokyo day — "Tokyo Tower and
+// around Skyscrapers.jpg"; Tokyo night — "Tokyo Tower at night (1).jpg"
+// (CC BY-SA 2.0); Cairo day — "All Gizah Pyramids.jpg" (a former Wikipedia
+// Picture of the Day); Cairo night — "Son et lumière sound and light show at
+// Giza.JPG" (Pyramids + Sphinx, illuminated). Sourced directly, not
+// Higgsfield-generated, per direct instruction while the Higgsfield MCP
+// connection is unavailable.
 
 /** Far, distant framing for the very start of the journey (progress 0) — see
  *  EarthJourneyScene's auto-reveal beat and timeline.ts's leading band. */

@@ -1,5 +1,6 @@
 import { Suspense, useEffect, useRef, type RefObject } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { gsap } from 'gsap';
 import { NoToneMapping, SRGBColorSpace, type DirectionalLight, type Group, type Mesh, type ShaderMaterial } from 'three';
 import { Earth } from './Earth';
@@ -126,6 +127,18 @@ export function EarthCanvas({ revealed, onRevealed }: EarthCanvasProps) {
         <AtmosphereGlow materialRef={atmosphereMaterialRef} />
         <CameraRig earthGroupRef={earthGroupRef} />
       </Suspense>
+      {/* Bloom — the highest-leverage single change for the "glowing,
+          cinematic" look asked for (§K11): the sun glint, the atmosphere rim,
+          and bright night-light clusters all pick up a soft halo instead of
+          being hard-edged raw color. Threshold kept fairly high so it only
+          catches genuinely bright pixels (the specular highlight, atmosphere
+          limb, dense city lights) rather than blooming the whole lit
+          hemisphere. Does not require HDR/tone-mapping — it operates on
+          luminance directly, so it's independent of the NoToneMapping choice
+          above (kept for the shader's own color math, see §6). */}
+      <EffectComposer>
+        <Bloom mipmapBlur luminanceThreshold={0.62} luminanceSmoothing={0.2} intensity={0.85} />
+      </EffectComposer>
     </Canvas>
   );
 }

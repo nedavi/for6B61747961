@@ -3,10 +3,12 @@ import { AdditiveBlending, BackSide, Color, ShaderMaterial } from 'three';
 import { atmosphereFragmentShader, atmosphereVertexShader } from './atmosphereShader';
 import { SUN_DIRECTION } from './sunDirection';
 
-// Much closer to the surface than the original 1.12 — a rim this far out
-// reads as a thick glowing halo rather than atmosphere. 1.035 combined with
-// the shader's sharper falloff (atmosphereShader.ts) gives a thin edge.
-const ATMOSPHERE_RADIUS = 1.035;
+// Much closer to the surface than the original 1.12 (which read as a thick
+// glowing halo) — nudged back out slightly from 1.035 to 1.05 on direct
+// follow-up feedback wanting more visible atmosphere, combined with the
+// shader's own softened falloff and the new Bloom pass (§K11). Still far
+// short of the original 1.12.
+const ATMOSPHERE_RADIUS = 1.05;
 const ATMOSPHERE_SEGMENTS = 64;
 
 // --color-accent-atmosphere from DESIGN.md, dimmed/desaturated slightly in-shader

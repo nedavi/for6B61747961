@@ -28,11 +28,16 @@ void main() {
   // larger radius produced a uniform cyan ring; a sharper falloff at a
   // radius much closer to the surface (see AtmosphereGlow.tsx) is what
   // actually looks like atmosphere rather than a glowing outline.
+  // Falloff slightly softened (3.8→3.4) and lit-side intensity raised
+  // (1.4→1.75) — direct follow-up feedback wanting a more visible/glowing
+  // atmosphere; paired with EarthCanvas's new Bloom pass (§K11), which is
+  // what actually turns this into a soft halo rather than just a brighter
+  // hard edge.
   float grazing = clamp(1.0 - abs(dot(vNormalV, vec3(0.0, 0.0, 1.0))), 0.0, 1.0);
-  float rim = pow(grazing, 3.8);
+  float rim = pow(grazing, 3.4);
 
   float sunFactor = smoothstep(-0.3, 0.5, dot(normalize(vNormalW), normalize(sunDirection)));
-  float intensity = rim * mix(0.18, 1.4, sunFactor);
+  float intensity = rim * mix(0.18, 1.75, sunFactor);
 
   // A vivid, saturated azure rim rather than the desaturated-toward-white
   // scientific version — the requested look is closer to stylized "Earth
