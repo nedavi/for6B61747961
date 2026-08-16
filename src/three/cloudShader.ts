@@ -27,8 +27,11 @@ varying vec2 vUv;
 varying vec3 vNormalW;
 
 void main() {
+  // Raised discard threshold thins overall coverage to broken wisps rather
+  // than a near-continuous blanket — "smaller/lighter clouds" per direct
+  // feedback, without needing a different density texture.
   float density = texture2D(cloudMap, vUv).r;
-  if (density < 0.02) discard;
+  if (density < 0.14) discard;
 
   float sunDot = dot(normalize(vNormalW), normalize(sunDirection));
   float lit = smoothstep(-0.3, 0.35, sunDot);
@@ -40,7 +43,10 @@ void main() {
   vec3 shadowColor = vec3(0.05, 0.06, 0.09);
   vec3 color = mix(shadowColor, litColor, lit);
 
-  float alpha = density * uOpacity * mix(0.22, 0.92, lit) * layerAlphaScale;
+  // Lower alpha ceiling — more transparent overall, so Earth's own surface
+  // stays legible through the deck rather than the clouds reading as a
+  // solid layer.
+  float alpha = density * uOpacity * mix(0.12, 0.5, lit) * layerAlphaScale;
   gl_FragColor = vec4(color, alpha);
 }
 `;

@@ -86,7 +86,9 @@ vec3 perturbNormal(vec3 N, vec3 V, vec2 uv) {
   float h0 = valueNoise(fineUv);
   float hX = valueNoise(fineUv + vec2(e, 0.0));
   float hY = valueNoise(fineUv + vec2(0.0, e));
-  vec2 fineTilt = vec2(h0 - hX, h0 - hY) * 0.6;
+  // Raised from 0.6 — more pronounced surface relief, per direct feedback
+  // that the planet read as flat with no visible bumps.
+  vec2 fineTilt = vec2(h0 - hX, h0 - hY) * 0.85;
   vec3 combinedN = normalize(vec3(mapN.xy + fineTilt, mapN.z));
 
   vec3 q0 = dFdx(V);
@@ -138,18 +140,20 @@ void main() {
   // curve can't go negative and naturally rolls off toward 1 instead of
   // clipping to a flat plate, so it lifts dark water without blowing out
   // bright land.
-  vec3 exposedDay = vec3(1.0) - exp(-dayColor * 8.0);
+  // Exposure factor raised again (8.0 → 10.0) — direct feedback that water
+  // still read as too dark even after the earlier brightness pass.
+  vec3 exposedDay = vec3(1.0) - exp(-dayColor * 10.0);
 
   // Push blue-dominant pixels (open ocean) further toward a vivid azure, and
   // lift overall saturation so the result reads as vivid rather than washed
   // out — masked additive push (not a mix-toward-a-flat-color) so brighter
   // water keeps its own variation instead of flattening to one hue.
   float blueDominance = max(dayColor.b - dayColor.r, 0.0);
-  exposedDay.b += blueDominance * 2.2;
-  exposedDay.g += blueDominance * 1.0;
+  exposedDay.b += blueDominance * 2.6;
+  exposedDay.g += blueDominance * 1.3;
 
   float dayLuma = dot(exposedDay, vec3(0.299, 0.587, 0.114));
-  vec3 gradedDay = mix(vec3(dayLuma), exposedDay, 1.5);
+  vec3 gradedDay = mix(vec3(dayLuma), exposedDay, 1.65);
 
   // A faint cool haze toward the grazing limb (Ngeo, the UNPERTURBED
   // geometric normal — a macro atmospheric-perspective cue, must not

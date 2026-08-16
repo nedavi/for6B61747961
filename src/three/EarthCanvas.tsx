@@ -1,7 +1,7 @@
-import { Suspense, useEffect, useRef } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Suspense, useEffect, useRef, type RefObject } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { gsap } from 'gsap';
-import { NoToneMapping, SRGBColorSpace, type Group, type Mesh, type ShaderMaterial } from 'three';
+import { NoToneMapping, SRGBColorSpace, type DirectionalLight, type Group, type Mesh, type ShaderMaterial } from 'three';
 import { Earth } from './Earth';
 import { CloudLayer } from './CloudLayer';
 import { AtmosphereGlow } from './AtmosphereGlow';
@@ -9,10 +9,27 @@ import { StarField } from './StarField';
 import { CameraRig } from './CameraRig';
 import { WaypointMarkers } from './WaypointMarkers';
 import { RegionalDetail } from './RegionalDetail';
-import { SUN_DIRECTION } from './sunDirection';
+import { SUN_DIRECTION, advanceSunDirection } from './sunDirection';
 import { EARTH_REVEAL_CAMERA } from '../data/journey';
 import { revealCameraStore, REVEAL_START_DISTANCE } from './revealCameraStore';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
+
+// Rotates SUN_DIRECTION every frame and mirrors it onto the real
+// THREE.DirectionalLight's position — a separate component (rather than
+// inline in EarthCanvas's body) because useFrame only works inside the
+// <Canvas> render tree, and EarthCanvas itself renders <Canvas>, it isn't
+// inside one.
+function SunController({ lightRef }: { lightRef: RefObject<DirectionalLight | null> }) {
+  const prefersReducedMotion = usePrefersReducedMotion();
+
+  useFrame((_, delta) => {
+    if (prefersReducedMotion) return;
+    advanceSunDirection(delta);
+    lightRef.current?.position.set(SUN_DIRECTION.x * 10, SUN_DIRECTION.y * 10, SUN_DIRECTION.z * 10);
+  });
+
+  return null;
+}
 
 interface EarthCanvasProps {
   /** True once storyPhase reaches 'earth' — starts the Earth/atmosphere opacity
@@ -24,6 +41,8 @@ interface EarthCanvasProps {
   onRevealed?: () => void;
 }
 
+// Initial position only — SunController takes over every subsequent frame
+// via directionalLightRef once mounted (SUN_DIRECTION now rotates).
 const sunLightPosition: [number, number, number] = [
   SUN_DIRECTION.x * 10,
   SUN_DIRECTION.y * 10,
@@ -34,6 +53,7 @@ export function EarthCanvas({ revealed, onRevealed }: EarthCanvasProps) {
   const earthGroupRef = useRef<Group>(null);
   const earthMeshRef = useRef<Mesh>(null);
   const earthMaterialRef = useRef<ShaderMaterial>(null);
+  const directionalLightRef = useRef<DirectionalLight>(null);
   const cloudLowMaterialRef = useRef<ShaderMaterial>(null);
   const cloudHighMaterialRef = useRef<ShaderMaterial>(null);
   const atmosphereMaterialRef = useRef<ShaderMaterial>(null);
@@ -92,7 +112,8 @@ export function EarthCanvas({ revealed, onRevealed }: EarthCanvasProps) {
       gl={{ antialias: true, alpha: true, toneMapping: NoToneMapping, outputColorSpace: SRGBColorSpace }}
     >
       <ambientLight intensity={0.05} />
-      <directionalLight position={sunLightPosition} intensity={1.2} />
+      <directionalLight ref={directionalLightRef} position={sunLightPosition} intensity={1.2} />
+      <SunController lightRef={directionalLightRef} />
       <StarField />
       <Suspense fallback={null}>
         <group ref={earthGroupRef}>

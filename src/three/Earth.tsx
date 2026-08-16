@@ -46,7 +46,7 @@ export function Earth({ meshRef, materialRef }: EarthProps) {
       normalMap: { value: normalMap },
       specularMap: { value: specularMap },
       sunDirection: { value: SUN_DIRECTION },
-      normalStrength: { value: 0.35 },
+      normalStrength: { value: 0.55 },
       uOpacity: { value: 0 },
       uTime: { value: 0 },
       // Regional detail insert (three/RegionalDetail.tsx) — dayMap is a safe

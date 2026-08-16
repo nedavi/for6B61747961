@@ -33,36 +33,26 @@ function arrivalEnvelope(progress: number, arrivalAt: number): number {
   return 0;
 }
 
-// Minimal monochrome pin, v2 — filled body (not a bare outline) with a soft
-// tonal bloom and a lens-like aperture at its center. Still deliberately not
-// the filled red Google Maps teardrop, and still not tinted with any accent
-// color ("no colored UI" — a direct earlier decision, see ARCHITECTURE.md
-// §K8) — the added quality comes from craft (gradient fill, baked-in glow,
-// a more considered inner detail, a larger canvas for crisper edges at any
-// zoom), not from color.
+// Minimal monochrome marker, v3 — a slim beacon (thin stem + small ring),
+// not a filled pin shape. v2's filled teardrop read as too large/blocky
+// ("low-poly") against Earth's own level of detail — direct feedback. This
+// version is deliberately small and thin: a soft glow, a fine stem rising
+// from the surface point, a hairline ring, and a bright center dot — closer
+// to a radar/target glyph than a map pin. Still not tinted with any accent
+// color ("no colored UI" — a direct earlier decision, see ARCHITECTURE.md §K8).
 function PinGlyph() {
   return (
-    <svg width="26" height="34" viewBox="0 0 26 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width="14" height="28" viewBox="0 0 14 28" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <radialGradient id="waypoint-pin-bloom" cx="50%" cy="34%" r="62%">
-          <stop offset="0%" stopColor="#f3ede4" stopOpacity="0.4" />
+        <radialGradient id="waypoint-pin-bloom" cx="50%" cy="21%" r="65%">
+          <stop offset="0%" stopColor="#f3ede4" stopOpacity="0.45" />
           <stop offset="100%" stopColor="#f3ede4" stopOpacity="0" />
         </radialGradient>
-        <linearGradient id="waypoint-pin-body" x1="13" y1="2.5" x2="13" y2="31.5" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#fffdfa" />
-          <stop offset="100%" stopColor="#d9d3c9" />
-        </linearGradient>
       </defs>
-      <circle cx="13" cy="13" r="13" fill="url(#waypoint-pin-bloom)" />
-      <path
-        d="M13 2.5C7.20101 2.5 2.5 7.20101 2.5 13C2.5 20.5 13 31.5 13 31.5C13 31.5 23.5 20.5 23.5 13C23.5 7.20101 18.799 2.5 13 2.5Z"
-        fill="url(#waypoint-pin-body)"
-        stroke="#050508"
-        strokeOpacity="0.18"
-        strokeWidth="0.6"
-      />
-      <circle cx="13" cy="12.6" r="3.5" fill="#050508" fillOpacity="0.26" />
-      <circle cx="13" cy="12.6" r="2.6" fill="#fffdfa" />
+      <circle cx="7" cy="6" r="8" fill="url(#waypoint-pin-bloom)" />
+      <line x1="7" y1="11.4" x2="7" y2="27" stroke="#f3ede4" strokeWidth="1.1" strokeOpacity="0.8" strokeLinecap="round" />
+      <circle cx="7" cy="6" r="5" fill="none" stroke="#f3ede4" strokeWidth="1.2" strokeOpacity="0.9" />
+      <circle cx="7" cy="6" r="1.6" fill="#f3ede4" />
     </svg>
   );
 }
