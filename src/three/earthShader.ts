@@ -86,10 +86,13 @@ vec3 perturbNormal(vec3 N, vec3 V, vec2 uv) {
   float h0 = valueNoise(fineUv);
   float hX = valueNoise(fineUv + vec2(e, 0.0));
   float hY = valueNoise(fineUv + vec2(0.0, e));
-  // Dialed back from 0.85 (§K9) — the day map now carries real baked relief
-  // (§K10), so this fine layer only needs to add micro-grain on top of it,
-  // not manufacture the relief itself.
-  vec2 fineTilt = vec2(h0 - hX, h0 - hY) * 0.5;
+  // Cut hard, 0.5 → 0.15 (§K12) — this per-pixel noise feeds directly into
+  // the specular half-vector below, and at 0.5 it was visibly "sandpaper"
+  // rather than smooth under direct light ("шершавая, не гладкая как
+  // стекло" — direct feedback). The day map already carries real baked
+  // relief (§K10); this layer only needs to be a whisper of grain, not
+  // something the specular highlight can see the texture of.
+  vec2 fineTilt = vec2(h0 - hX, h0 - hY) * 0.15;
   vec3 combinedN = normalize(vec3(mapN.xy + fineTilt, mapN.z));
 
   vec3 q0 = dFdx(V);
@@ -141,20 +144,28 @@ void main() {
   // curve can't go negative and naturally rolls off toward 1 instead of
   // clipping to a flat plate, so it lifts dark water without blowing out
   // bright land.
-  // Exposure factor raised again (8.0 → 10.0) — direct feedback that water
-  // still read as too dark even after the earlier brightness pass.
-  vec3 exposedDay = vec3(1.0) - exp(-dayColor * 10.0);
+  // Brought back down from 10.0 (§K12) — that value was tuned against the
+  // old, near-black flat day map (§K9); the current topo/bathymetry source
+  // (§K10) already carries real bathymetry color variation and doesn't
+  // start nearly as dark, so the same push was over-brightening it.
+  vec3 exposedDay = vec3(1.0) - exp(-dayColor * 7.0);
 
-  // Push blue-dominant pixels (open ocean) further toward a vivid azure, and
-  // lift overall saturation so the result reads as vivid rather than washed
-  // out — masked additive push (not a mix-toward-a-flat-color) so brighter
-  // water keeps its own variation instead of flattening to one hue.
+  // Push blue-dominant pixels (open ocean) toward a slightly more vivid
+  // azure — additive push cut hard (2.6→0.7 / 1.3→0.25, §K12), since at the
+  // old strength it turned the new source's real bathymetry gradient
+  // (naturally lighter over shelves, darker over open ocean) into patchy
+  // cyan blotches rather than a smooth gradient — direct feedback ("лазурные
+  // участки непонятные"). Still additive/masked, not a flat mix, so water
+  // keeps its own variation.
   float blueDominance = max(dayColor.b - dayColor.r, 0.0);
-  exposedDay.b += blueDominance * 2.6;
-  exposedDay.g += blueDominance * 1.3;
+  exposedDay.b += blueDominance * 0.7;
+  exposedDay.g += blueDominance * 0.25;
 
+  // Saturation lift cut from 1.65 → 1.2 (§K12) — 1.65 was double-counting
+  // with the blueDominance push above specifically on water pixels,
+  // compounding the same blotchy-cyan problem from a second direction.
   float dayLuma = dot(exposedDay, vec3(0.299, 0.587, 0.114));
-  vec3 gradedDay = mix(vec3(dayLuma), exposedDay, 1.65);
+  vec3 gradedDay = mix(vec3(dayLuma), exposedDay, 1.2);
 
   // A faint cool haze toward the grazing limb (Ngeo, the UNPERTURBED
   // geometric normal — a macro atmospheric-perspective cue, must not
@@ -169,38 +180,42 @@ void main() {
   // "real electrical grid flicker at a distance," never as blinking lights.
   float shimmerPhase = hash(floor(vUv * 300.0)) * 6.2831853;
   float shimmer = 1.0 + 0.05 * sin(uTime * 0.12 + shimmerPhase);
-  // Raised from 0.85 — dense city clusters need to be bright enough to
-  // actually trigger the new Bloom pass (§K11) and read as glowing lights,
-  // not just a slightly-lifted dark patch.
-  vec3 gradedNight = nightColor * 1.35 * shimmer;
+  // Raised from 0.85 to 1.35 in §K11, pulled back slightly to 1.15 in §K12
+  // alongside the general overexposure correction — still bright enough to
+  // read as glowing city lights once Bloom's threshold is raised to only
+  // catch genuine highlights (EarthCanvas.tsx), without needing as much raw
+  // brightness to get there.
+  vec3 gradedNight = nightColor * 1.15 * shimmer;
   vec3 color = mix(gradedNight, gradedDay, dayMix);
 
   // True view-dependent specular (Blinn-Phong half-vector) — a real ocean
   // glint that moves and appears/disappears as the camera orbits, not a
-  // fixed brightness pattern tied only to surface-vs-sun angle. Three lobes
-  // layered together read as glass/water catching direct sun rather than a
-  // single tight synthetic dot: a bright core, a softer mid sheen, and a
-  // wide, faint outer halo for a bloom-like cinematic quality. Warmed off
-  // pure white toward gold — a "sun glint," not a clinical specular
-  // highlight — and the core exponent loosened slightly (140→110) so it
-  // reads as a soft flare rather than a hard pinpoint.
+  // fixed brightness pattern tied only to surface-vs-sun angle. Two lobes:
+  // a bright core and a softer mid sheen, warmed off pure white toward gold
+  // for a "sun glint" rather than a clinical specular highlight.
+  // §K12: dropped the third, very-wide "halo" lobe from §K11 — it was a
+  // hand-rolled stand-in for bloom, and now that EarthCanvas has a real
+  // Bloom pass (§K11) it was double-counting, smearing a warm haze across
+  // large areas of the lit hemisphere instead of just the glint — a real
+  // contributor to the reported "harsh overexposure."
   vec3 halfVector = normalize(viewDir + normalize(sunDirection));
   float ndh = max(dot(N, halfVector), 0.0);
   float specCore = pow(ndh, 110.0);
   float specSheen = pow(ndh, 18.0);
-  float specHalo = pow(ndh, 3.5);
-  color += vec3(1.0, 0.93, 0.78) * specCore * specMask * dayMix * 1.15;
-  color += vec3(1.0, 0.9, 0.72) * specSheen * specMask * dayMix * 0.24;
-  color += vec3(1.0, 0.88, 0.68) * specHalo * specMask * dayMix * 0.05;
+  color += vec3(1.0, 0.93, 0.78) * specCore * specMask * dayMix * 0.95;
+  color += vec3(1.0, 0.9, 0.72) * specSheen * specMask * dayMix * 0.15;
 
   // Faint cool fill so the unlit side reads as dark blue-black rather than
   // pure crushed black.
   color += vec3(0.012, 0.016, 0.03) * (1.0 - dayMix);
 
   // Soft highlight-safety clamp — keeps the very brightest ice/cloud-edge
-  // pixels from clipping to a flat white plate at close camera range, loose
-  // enough to let the specular glint above actually read as bright.
-  color = color / (1.0 + max(vec3(0.0), color - 1.05) * 0.45);
+  // pixels from clipping to a flat white plate at close camera range.
+  // Tightened (1.05→0.92 threshold, 0.45→0.6 strength, §K12) alongside the
+  // brightness/specular reductions above — direct feedback was harsh,
+  // "grainy" overexposure, and the old clamp was tuned for numbers that no
+  // longer apply.
+  color = color / (1.0 + max(vec3(0.0), color - 0.92) * 0.6);
 
   gl_FragColor = vec4(color, uOpacity);
 }

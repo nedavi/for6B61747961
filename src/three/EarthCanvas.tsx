@@ -129,15 +129,18 @@ export function EarthCanvas({ revealed, onRevealed }: EarthCanvasProps) {
       </Suspense>
       {/* Bloom — the highest-leverage single change for the "glowing,
           cinematic" look asked for (§K11): the sun glint, the atmosphere rim,
-          and bright night-light clusters all pick up a soft halo instead of
-          being hard-edged raw color. Threshold kept fairly high so it only
-          catches genuinely bright pixels (the specular highlight, atmosphere
-          limb, dense city lights) rather than blooming the whole lit
-          hemisphere. Does not require HDR/tone-mapping — it operates on
-          luminance directly, so it's independent of the NoToneMapping choice
-          above (kept for the shader's own color math, see §6). */}
+          and bright night-light clusters pick up a soft halo instead of
+          being hard-edged raw color. Threshold raised again in §K12
+          (0.62→0.82) and intensity roughly halved (0.85→0.45) — at the
+          original values it was catching most of the lit hemisphere, not
+          just genuine highlights, and was a real contributor to the
+          reported "harsh, grainy overexposure" alongside the shader-side
+          brightness corrections in earthShader.ts. Does not require
+          HDR/tone-mapping — it operates on luminance directly, so it's
+          independent of the NoToneMapping choice above (kept for the
+          shader's own color math, see §6). */}
       <EffectComposer>
-        <Bloom mipmapBlur luminanceThreshold={0.62} luminanceSmoothing={0.2} intensity={0.85} />
+        <Bloom mipmapBlur luminanceThreshold={0.82} luminanceSmoothing={0.25} intensity={0.45} />
       </EffectComposer>
     </Canvas>
   );

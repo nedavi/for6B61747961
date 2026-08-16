@@ -46,11 +46,13 @@ export function Earth({ meshRef, materialRef }: EarthProps) {
       normalMap: { value: normalMap },
       specularMap: { value: specularMap },
       sunDirection: { value: SUN_DIRECTION },
-      // Dialed back from 0.55 (§K9) now that the day map itself carries real
-      // baked shaded-relief (§K10's topo/bathymetry source) — stacking a
-      // strong procedural bump on top of already-visible real terrain read as
-      // over-noisy rather than more detailed.
-      normalStrength: { value: 0.42 },
+      // Dialed back again, 0.42 → 0.32 (§K12) — combined with the fine-noise
+      // cut in earthShader.ts, direct feedback was that the lit surface
+      // looked rough/grainy under specular light rather than smooth; the
+      // real baked relief in the day map (§K10) carries most of the visible
+      // shape on its own now, so this needs to be a light touch, not the
+      // dominant contributor.
+      normalStrength: { value: 0.32 },
       uOpacity: { value: 0 },
       uTime: { value: 0 },
       // Regional detail insert (three/RegionalDetail.tsx) — dayMap is a safe
