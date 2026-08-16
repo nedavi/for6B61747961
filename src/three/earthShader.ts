@@ -141,8 +141,29 @@ void main() {
   // a texture pasted on a sphere all the way to the limb.
   float limbFresnel = pow(1.0 - max(dot(Ngeo, viewDir), 0.0), 2.4);
   vec3 hazeColor = vec3(0.55, 0.68, 0.82);
-  vec3 contrastDay = (dayColor - 0.5) * 1.08 + 0.5;
-  vec3 gradedDay = mix(contrastDay * 0.93, hazeColor, limbFresnel * 0.2);
+  vec3 contrastDay = (dayColor - 0.5) * 1.16 + 0.5;
+  vec3 gradedDay = mix(contrastDay * 1.04, hazeColor, limbFresnel * 0.2);
+
+  // The raw NASA composite's open ocean is near-black navy, not the vivid
+  // turquoise a color-graded "Earth from space" shot has — a small additive
+  // hue nudge barely registers against near-zero source values, so this
+  // actually lifts brightness toward a set azure target color rather than
+  // just shifting hue. Two masks multiplied together: "blue channel clearly
+  // dominant" (water, not land/desert/cloud) and "source pixel is dark"
+  // (deep ocean, not an already-bright sunglint pixel or ice) — so bright
+  // water keeps its own detail instead of being flattened toward one color.
+  float waterMask = smoothstep(0.004, 0.028, dayColor.b - dayColor.r);
+  float oceanDarkness = 1.0 - smoothstep(0.0, 0.3, dayColor.b);
+  vec3 azure = vec3(0.05, 0.45, 0.65);
+  gradedDay = mix(gradedDay, azure, waterMask * oceanDarkness * 0.85);
+
+  // Overall saturation lift — the raw NASA composite reads noticeably
+  // flatter/greyer than a hand-graded source; boosting saturation around
+  // each pixel's own luma (rather than a flat channel multiply) keeps
+  // whites/greys neutral while making blues and greens read as vivid rather
+  // than washed out.
+  float dayLuma = dot(gradedDay, vec3(0.299, 0.587, 0.114));
+  gradedDay = mix(vec3(dayLuma), gradedDay, 1.28);
 
   // Subtle city-light shimmer — NOT a synchronized pulse. Each pixel gets its
   // own slow phase from a spatial hash, so different clusters drift in and
@@ -155,20 +176,25 @@ void main() {
 
   // True view-dependent specular (Blinn-Phong half-vector) — a real ocean
   // glint that moves and appears/disappears as the camera orbits, not a
-  // fixed brightness pattern tied only to surface-vs-sun angle. Tight and
-  // restrained so it reads as an occasional cinematic highlight, not a
-  // permanent bright spot.
+  // fixed brightness pattern tied only to surface-vs-sun angle. Two lobes
+  // layered together read as glass/water catching direct sun rather than a
+  // single tight synthetic dot: a bright, tight core plus a softer, wider
+  // sheen spread around it.
   vec3 halfVector = normalize(viewDir + normalize(sunDirection));
-  float specAngle = pow(max(dot(N, halfVector), 0.0), 90.0);
-  color += vec3(0.8, 0.88, 1.0) * specAngle * specMask * dayMix * 0.5;
+  float ndh = max(dot(N, halfVector), 0.0);
+  float specCore = pow(ndh, 140.0);
+  float specSheen = pow(ndh, 12.0);
+  color += vec3(0.85, 0.92, 1.0) * specCore * specMask * dayMix * 1.1;
+  color += vec3(0.75, 0.85, 1.0) * specSheen * specMask * dayMix * 0.22;
 
   // Faint cool fill so the unlit side reads as dark blue-black rather than
   // pure crushed black.
   color += vec3(0.012, 0.016, 0.03) * (1.0 - dayMix);
 
   // Soft highlight-safety clamp — keeps the very brightest ice/cloud-edge
-  // pixels from clipping to a flat white plate at close camera range.
-  color = color / (1.0 + max(vec3(0.0), color - 0.92) * 0.6);
+  // pixels from clipping to a flat white plate at close camera range, loose
+  // enough to let the specular glint above actually read as bright.
+  color = color / (1.0 + max(vec3(0.0), color - 1.05) * 0.45);
 
   gl_FragColor = vec4(color, uOpacity);
 }
