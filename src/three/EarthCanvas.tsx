@@ -6,6 +6,7 @@ import { Earth } from './Earth';
 import { CloudLayer } from './CloudLayer';
 import { AtmosphereGlow } from './AtmosphereGlow';
 import { StarField } from './StarField';
+import { GalaxyField } from './GalaxyField';
 import { CameraRig } from './CameraRig';
 import { WaypointMarkers } from './WaypointMarkers';
 import { RegionalDetail } from './RegionalDetail';
@@ -94,6 +95,9 @@ export function EarthCanvas({ revealed, onRevealed }: EarthCanvasProps) {
       <ambientLight intensity={0.05} />
       <directionalLight position={sunLightPosition} intensity={1.2} />
       <StarField />
+      <Suspense fallback={null}>
+        <GalaxyField revealed={revealed} />
+      </Suspense>
       <Suspense fallback={null}>
         <group ref={earthGroupRef}>
           <Earth meshRef={earthMeshRef} materialRef={earthMaterialRef} />
