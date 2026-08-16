@@ -130,17 +130,18 @@ export function EarthCanvas({ revealed, onRevealed }: EarthCanvasProps) {
       {/* Bloom — the highest-leverage single change for the "glowing,
           cinematic" look asked for (§K11): the sun glint, the atmosphere rim,
           and bright night-light clusters pick up a soft halo instead of
-          being hard-edged raw color. Threshold raised again in §K12
-          (0.62→0.82) and intensity roughly halved (0.85→0.45) — at the
-          original values it was catching most of the lit hemisphere, not
-          just genuine highlights, and was a real contributor to the
-          reported "harsh, grainy overexposure" alongside the shader-side
-          brightness corrections in earthShader.ts. Does not require
-          HDR/tone-mapping — it operates on luminance directly, so it's
-          independent of the NoToneMapping choice above (kept for the
-          shader's own color math, see §6). */}
+          being hard-edged raw color. §K12 already raised the threshold once;
+          §K13 cut further after a real screenshot showed a large blown-out
+          white disc instead of a glint — `mipmapBlur` is dropped entirely
+          (it's designed for a big, soft UE4-style spread, which is exactly
+          the wrong shape here) in favor of the default, more contained
+          kernel blur, threshold raised again (0.82→0.92, very selective now),
+          and intensity cut hard (0.45→0.18). Does not require HDR/tone-
+          mapping — it operates on luminance directly, so it's independent of
+          the NoToneMapping choice above (kept for the shader's own color
+          math, see §6). */}
       <EffectComposer>
-        <Bloom mipmapBlur luminanceThreshold={0.82} luminanceSmoothing={0.25} intensity={0.45} />
+        <Bloom luminanceThreshold={0.92} luminanceSmoothing={0.15} intensity={0.18} />
       </EffectComposer>
     </Canvas>
   );

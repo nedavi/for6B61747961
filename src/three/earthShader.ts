@@ -193,17 +193,17 @@ void main() {
   // fixed brightness pattern tied only to surface-vs-sun angle. Two lobes:
   // a bright core and a softer mid sheen, warmed off pure white toward gold
   // for a "sun glint" rather than a clinical specular highlight.
-  // §K12: dropped the third, very-wide "halo" lobe from §K11 — it was a
-  // hand-rolled stand-in for bloom, and now that EarthCanvas has a real
-  // Bloom pass (§K11) it was double-counting, smearing a warm haze across
-  // large areas of the lit hemisphere instead of just the glint — a real
-  // contributor to the reported "harsh overexposure."
+  // §K12 dropped a third, very-wide "halo" lobe (a pre-Bloom hand-rolled
+  // glow that became redundant/additive once real Bloom existed). §K13:
+  // that wasn't enough — a real screenshot still showed a large blown-out
+  // white disc, not a glint, so both remaining lobes are tightened hard:
+  // narrower exponents (110→170, 18→30) and roughly halved intensity.
   vec3 halfVector = normalize(viewDir + normalize(sunDirection));
   float ndh = max(dot(N, halfVector), 0.0);
-  float specCore = pow(ndh, 110.0);
-  float specSheen = pow(ndh, 18.0);
-  color += vec3(1.0, 0.93, 0.78) * specCore * specMask * dayMix * 0.95;
-  color += vec3(1.0, 0.9, 0.72) * specSheen * specMask * dayMix * 0.15;
+  float specCore = pow(ndh, 170.0);
+  float specSheen = pow(ndh, 30.0);
+  color += vec3(1.0, 0.93, 0.78) * specCore * specMask * dayMix * 0.5;
+  color += vec3(1.0, 0.9, 0.72) * specSheen * specMask * dayMix * 0.07;
 
   // Faint cool fill so the unlit side reads as dark blue-black rather than
   // pure crushed black.

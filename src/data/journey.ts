@@ -103,7 +103,9 @@ export const journey: Waypoint[] = [
         'Столица, где императорские дворцы соседствуют с небоскрёбами, а древние хутуны прячутся в паре шагов от неоновых проспектов.',
       // Real photographs (Wikimedia Commons, CC-licensed — see credits below),
       // not generated, per direct instruction while Higgsfield is unavailable.
-      photos: { day: '/assets/destinations/beijing/day.webp', night: '/assets/destinations/beijing/night.webp' },
+      // ?v=2 cache-busts the landmark-photo swap (§K11) in case a CDN/browser
+      // had cached the original skyline photos at these same URLs.
+      photos: { day: '/assets/destinations/beijing/day.webp?v=2', night: '/assets/destinations/beijing/night.webp?v=2' },
       landmarks: ['Запретный город', 'Великая Китайская стена', 'Площадь Тяньаньмэнь'],
     },
   },
@@ -123,7 +125,7 @@ export const journey: Waypoint[] = [
     info: {
       description:
         'Город, где всё одновременно: храмы XVII века, самый плотный неон в мире и тишина садов в двух шагах от станции метро.',
-      photos: { day: '/assets/destinations/tokyo/day.webp', night: '/assets/destinations/tokyo/night.webp' },
+      photos: { day: '/assets/destinations/tokyo/day.webp?v=2', night: '/assets/destinations/tokyo/night.webp?v=2' },
       landmarks: ['Токийская башня', 'Храм Сэнсо-дзи', 'Перекрёсток Сибуя'],
     },
   },
@@ -143,7 +145,7 @@ export const journey: Waypoint[] = [
     info: {
       description:
         'Мегаполис на Ниле, где пирамидам уже четыре с половиной тысячи лет, а рынок Хан-эль-Халили торгуется точно так же, как и века назад.',
-      photos: { day: '/assets/destinations/cairo/day.webp', night: '/assets/destinations/cairo/night.webp' },
+      photos: { day: '/assets/destinations/cairo/day.webp?v=2', night: '/assets/destinations/cairo/night.webp?v=2' },
       landmarks: ['Пирамиды Гизы', 'Сфинкс', 'Каирский музей'],
     },
   },
