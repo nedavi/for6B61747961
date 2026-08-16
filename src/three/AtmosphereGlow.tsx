@@ -3,12 +3,12 @@ import { AdditiveBlending, BackSide, Color, ShaderMaterial } from 'three';
 import { atmosphereFragmentShader, atmosphereVertexShader } from './atmosphereShader';
 import { SUN_DIRECTION } from './sunDirection';
 
-// Much closer to the surface than the original 1.12 (which read as a thick
-// glowing halo) — nudged back out slightly from 1.035 to 1.05 on direct
-// follow-up feedback wanting more visible atmosphere, combined with the
-// shader's own softened falloff and the new Bloom pass (§K11). Still far
-// short of the original 1.12.
-const ATMOSPHERE_RADIUS = 1.05;
+// Pushed again, 1.05 → 1.09 (§K16) — still short of the original 1.12 that
+// read as a flat cyan ring, but this time paired with a much stronger
+// intensity/falloff push in atmosphereShader.ts rather than another timid
+// nudge, after two rounds of "still not bright enough" against a specific
+// reference target.
+const ATMOSPHERE_RADIUS = 1.09;
 const ATMOSPHERE_SEGMENTS = 64;
 
 // --color-accent-atmosphere from DESIGN.md, dimmed/desaturated slightly in-shader

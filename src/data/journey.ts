@@ -113,7 +113,7 @@ export const journey: Waypoint[] = [
     // no-ops cleanly for any waypoint without one.
     info: {
       description:
-        'Столица, где императорские дворцы соседствуют с небоскрёбами, а древние хутуны прячутся в паре шагов от неоновых проспектов.',
+        'Два дня — и вы прошли путь от трона императора (сесть нельзя, но все пытаются) до острой лапши в переулке хутуна за углом от небоскрёба. На Великой стене держитесь за руки — толпа туристов страшнее любого дракона.',
       landmarks: [
         { name: 'Запретный город', photo: '/assets/destinations/beijing/forbidden-city.webp' },
         { name: 'Великая Китайская стена', photo: '/assets/destinations/beijing/great-wall.webp' },
