@@ -3,13 +3,17 @@ import { gsap } from 'gsap';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 import { STARS, mulberry32, GRAIN_SEED } from './seededRandom';
 import { PHASE_CONFIG, type BackgroundPhase } from './backgroundPhases';
-import { ANCHOR_STARS, CONNECTIONS, revealProgress } from './constellations';
+import { CONSTELLATION_STARS, CONSTELLATION_STATES, DISSOLVED_STATE, type GroupId, type GroupState } from './constellations';
 
 const GRAIN_SIZE = 128;
-// How long the constellation's thin connection lines take to dissolve once
-// the space-transition phase begins (Part 11 beat D/F) — anchors stay lit and
-// become part of the eventual WebGL star field; only the drawn lines fade.
-const CONNECTION_DISSOLVE_MS = 3200;
+// How long every group eases toward the dissolved/shared-field state once
+// space-transition begins — groups stop reading as distinct clusters and
+// quietly become part of the ordinary star field (visual/constellations.ts).
+const DISSOLVE_MS = 3200;
+// Per-frame lerp rate for star brightness/size/drift easing toward their
+// current group target — tuned for a ~1.2-1.8s settle, matching the "1-2
+// second interpolation window, no sudden changes" requirement.
+const STAR_EASE_RATE = 0.045;
 
 interface AmbientBackgroundProps {
   phase: BackgroundPhase;
@@ -45,6 +49,20 @@ export function AmbientBackground({ phase, visible = true, storyProgress = 0 }: 
   const dissolveStartRef = useRef<number | null>(null);
   const prefersReducedMotion = usePrefersReducedMotion();
   const [grainUrl, setGrainUrl] = useState<string | null>(null);
+
+  // Per-star smoothed current values — each star eases toward its group's
+  // current target state every frame (STAR_EASE_RATE) rather than snapping
+  // when the story step changes. A ref, not state: read/written every
+  // animation frame, never through React.
+  const constellationCurrentRef = useRef<Map<string, { brightness: number; sizeScale: number; x: number; y: number }>>(
+    (() => {
+      const map = new Map<string, { brightness: number; sizeScale: number; x: number; y: number }>();
+      for (const star of CONSTELLATION_STARS) {
+        map.set(star.id, { brightness: 0, sizeScale: 1, x: star.x, y: star.y });
+      }
+      return map;
+    })(),
+  );
 
   useEffect(() => {
     storyProgressRef.current = storyProgress;
@@ -132,6 +150,21 @@ export function AmbientBackground({ phase, visible = true, storyProgress = 0 }: 
       ctx.clearRect(0, 0, width, height);
       const cfg = configRef.current;
       const t = (time / 1000) * cfg.motionSpeed;
+
+      // How far into the space-transition dissolve we are — computed once
+      // per frame and reused below by both the field stars and the
+      // constellation groups, so "losing graphic quality" reads as one
+      // coordinated sky-wide change rather than two unrelated effects.
+      const dissolveElapsed = dissolveStartRef.current === null ? 0 : time - dissolveStartRef.current;
+      const dissolveT = Math.min(1, Math.max(0, dissolveElapsed / DISSOLVE_MS));
+      // Field stars shrink toward small, plain pinpricks as the dissolve
+      // progresses — visually converging toward how the WebGL star field
+      // renders (three/StarField.tsx) rather than just fading out at their
+      // original "graphic" size, which is what makes the handoff read as
+      // "these vector stars become physical" instead of "one field fades,
+      // a different field appears."
+      const fieldShrink = 1 - dissolveT * 0.5;
+
       for (const star of STARS) {
         const twinkle = prefersReducedMotion
           ? 1
@@ -143,58 +176,63 @@ export function AmbientBackground({ phase, visible = true, storyProgress = 0 }: 
         ctx.globalAlpha = alpha;
         ctx.fillStyle = '#f3ede4';
         ctx.beginPath();
-        ctx.arc(px, py, star.radius, 0, Math.PI * 2);
+        ctx.arc(px, py, star.radius * fieldShrink, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      // Constellation layer — an authored celestial map, not more random dots
-      // (visual/constellations.ts). Connections dissolve once space-transition
-      // begins; anchors stay lit and hand off into the WebGL star field.
+      // Constellation layer — authored star groups, no connecting lines
+      // (visual/constellations.ts). Each star continuously eases toward its
+      // group's current target { brightness, sizeScale, drift } rather than
+      // snapping on step change — the sky quietly reorganizes itself.
       const storyProgressValue = storyProgressRef.current;
-      const dissolveElapsed = dissolveStartRef.current === null ? 0 : time - dissolveStartRef.current;
-      const dissolveT = Math.min(1, Math.max(0, dissolveElapsed / CONNECTION_DISSOLVE_MS));
-      const connectionFade = 1 - dissolveT;
+      const stateIndex = Math.min(
+        CONSTELLATION_STATES.length - 1,
+        Math.max(0, Math.round(storyProgressValue * (CONSTELLATION_STATES.length - 1))),
+      );
+      const easeRate = prefersReducedMotion ? 1 : STAR_EASE_RATE;
 
-      const anchorPositions = new Map<string, { px: number; py: number; alpha: number }>();
-      for (const anchor of ANCHOR_STARS) {
-        const reveal = revealProgress(storyProgressValue, anchor.revealAt);
-        if (reveal <= 0.01) continue;
-        const twinkle = prefersReducedMotion
-          ? 1
-          : 0.75 + 0.25 * Math.sin(t * 0.6 + anchor.x * 37 + anchor.y * 19);
-        // Anchors brighten slightly as connections dissolve into them (beat E).
-        const dissolveBoost = 1 + dissolveT * 0.25;
-        const alpha = Math.min(1, anchor.targetOpacity * reveal * twinkle * cfg.starOpacity * 1.15 * dissolveBoost);
-        const px = anchor.x * width + pointerEased.current.x * 2.4;
-        const py = anchor.y * height + pointerEased.current.y * 2.4;
-        anchorPositions.set(anchor.id, { px, py, alpha });
+      for (const star of CONSTELLATION_STARS) {
+        const stepTarget = CONSTELLATION_STATES[stateIndex][star.groupId as GroupId];
+        const target: GroupState =
+          dissolveT > 0
+            ? {
+                brightness: stepTarget.brightness + (DISSOLVED_STATE.brightness - stepTarget.brightness) * dissolveT,
+                sizeScale: stepTarget.sizeScale + (DISSOLVED_STATE.sizeScale - stepTarget.sizeScale) * dissolveT,
+                drift: stepTarget.drift,
+              }
+            : stepTarget;
+
+        const current = constellationCurrentRef.current.get(star.id);
+        if (!current) continue;
+        const targetX = star.x + target.drift.x;
+        const targetY = star.y + target.drift.y;
+        current.brightness += (target.brightness - current.brightness) * easeRate;
+        current.sizeScale += (target.sizeScale - current.sizeScale) * easeRate;
+        current.x += (targetX - current.x) * easeRate;
+        current.y += (targetY - current.y) * easeRate;
+
+        const twinkle = prefersReducedMotion ? 1 : 0.85 + 0.15 * Math.sin(t * 0.5 + star.x * 41 + star.y * 23);
+        const alpha = Math.min(1, current.brightness * twinkle * cfg.starOpacity * 1.1);
         if (alpha <= 0.01) continue;
+        const px = current.x * width + pointerEased.current.x * star.parallax;
+        const py = current.y * height + pointerEased.current.y * star.parallax;
+        const radius = star.baseRadius * current.sizeScale;
         ctx.globalAlpha = alpha;
         ctx.fillStyle = '#f3ede4';
         ctx.beginPath();
-        ctx.arc(px, py, anchor.radius * 1.5, 0, Math.PI * 2);
+        ctx.arc(px, py, radius, 0, Math.PI * 2);
         ctx.fill();
-        // A faint glow so anchors read as slightly more significant than field stars.
-        ctx.globalAlpha = alpha * 0.3;
-        ctx.beginPath();
-        ctx.arc(px, py, anchor.radius * 4, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      if (connectionFade > 0.01) {
-        for (const connection of CONNECTIONS) {
-          const reveal = revealProgress(storyProgressValue, connection.revealAt, 0.1);
-          if (reveal <= 0.01) continue;
-          const from = anchorPositions.get(connection.a);
-          const to = anchorPositions.get(connection.b);
-          if (!from || !to) continue;
-          ctx.globalAlpha = reveal * 0.32 * connectionFade;
-          ctx.strokeStyle = '#8a7cff';
-          ctx.lineWidth = 1;
+        // A faint glow on brighter stars only, so dim/background members of a
+        // fading group don't all carry the same halo — and it fades out
+        // entirely as the dissolve completes, since a soft glowing halo is
+        // exactly the "graphic/vector" quality real stars don't have; without
+        // this the anchors would still look illustrated after "becoming part
+        // of" the physical WebGL star field.
+        if (current.brightness > 0.4 && dissolveT < 1) {
+          ctx.globalAlpha = alpha * 0.28 * (1 - dissolveT);
           ctx.beginPath();
-          ctx.moveTo(from.px, from.py);
-          ctx.lineTo(to.px, to.py);
-          ctx.stroke();
+          ctx.arc(px, py, radius * 4, 0, Math.PI * 2);
+          ctx.fill();
         }
       }
 

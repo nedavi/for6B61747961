@@ -35,6 +35,20 @@ export interface CameraPose {
   fov?: number;
 }
 
+/** A short establishing-shot clip shown as a full-screen takeover at this
+ *  waypoint's closest approach (scenes/earth/CityPostcard.tsx) — the globe
+ *  fades out entirely, the video plays, then the globe fades back in as
+ *  scroll carries the camera onward. Optional: a waypoint with no `postcard`
+ *  behaves exactly as before (no takeover). */
+export interface CityPostcard {
+  /** Muted, looping video — no audio track expected (autoplay requires it
+   *  muted anyway). */
+  video: string;
+  /** Shown immediately while the video loads/decodes, and as the static
+   *  frame under `prefers-reduced-motion` (no autoplaying video then). */
+  poster: string;
+}
+
 export interface Waypoint {
   id: string;
   /** Russian display label rendered in the DOM marker (WaypointMarkers), e.g. "МОСКВА". */
@@ -45,16 +59,19 @@ export interface Waypoint {
   /** Relative scroll "screen time" vs. other waypoints, default 1 — a pacing
    *  hint consumed by timeline.ts, NOT a normalized progress value. */
   durationWeight?: number;
+  postcard?: CityPostcard;
 }
 
-// TEST DATA ONLY — purely to validate the scroll → rotation → camera mechanic.
-// Not the real trip destination. Coordinates are standard city-center approximations.
+// TEST DATA — validates the scroll → rotation → camera mechanic with real
+// geography, but is still NOT the real trip destination (per instructions,
+// that reveal is a later milestone). Real Russian city names, not
+// transliterations — matches how Moscow/Paris were localized.
 export const journey: Waypoint[] = [
   {
-    id: 'moscow',
-    label: 'МОСКВА',
-    lat: 55.7558,
-    lng: 37.6173,
+    id: 'beijing',
+    label: 'ПЕКИН',
+    lat: 39.9042,
+    lng: 116.4074,
     // The first arrival — this is the pose meant to most closely match the
     // K2 reference composition: Earth large, weighted lower-right, big empty
     // upper-left, camera looking past the limb rather than at dead-center.
@@ -64,12 +81,16 @@ export const journey: Waypoint[] = [
       lookAtOffset: { x: 0.24, y: 0.16, z: 0 },
       fov: 42,
     },
+    // postcard: intentionally unset — no real Higgsfield video exists yet
+    // (see ARCHITECTURE.md §K4). Add `{ video, poster }` here once the
+    // credit top-up + generation pass happens; CityPostcard.tsx already
+    // no-ops cleanly for any waypoint without one.
   },
   {
-    id: 'paris',
-    label: 'ПАРИЖ',
-    lat: 48.8566,
-    lng: 2.3522,
+    id: 'tokyo',
+    label: 'ТОКИО',
+    lat: 35.6762,
+    lng: 139.6503,
     // A different orbital angle — weighted the other way, slightly higher
     // camera elevation, so the journey doesn't repeat the same framing twice.
     camera: {
@@ -80,16 +101,16 @@ export const journey: Waypoint[] = [
     },
   },
   {
-    id: 'tokyo',
-    label: 'ТОКИО',
-    lat: 35.6762,
-    lng: 139.6503,
+    id: 'cairo',
+    label: 'КАИР',
+    lat: 30.0444,
+    lng: 31.2357,
     durationWeight: 1.4,
     // Closest approach of this test journey — Earth fills more of the frame.
     camera: {
       distance: 1.95,
-      positionOffset: { x: -0.18, y: 0.13 },
-      lookAtOffset: { x: 0.2, y: 0.17, z: 0 },
+      positionOffset: { x: -0.18, y: 0.08 },
+      lookAtOffset: { x: 0.2, y: 0.1, z: 0 },
       fov: 38,
     },
   },

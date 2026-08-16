@@ -1,5 +1,5 @@
 // Scroll progress is written once per ScrollTrigger tick (EarthJourneyScene)
-// and read every animation frame (CameraRig, WaypointMarkers, RouteLine).
+// and read every animation frame (CameraRig, WaypointMarkers).
 // A plain mutable object — not React state/Context — because pushing 60fps
 // updates through React would mean 60fps re-renders (ARCHITECTURE.md §6/§7).
 export const progressStore = {

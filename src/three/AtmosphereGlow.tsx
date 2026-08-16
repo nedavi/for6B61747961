@@ -28,7 +28,7 @@ export function AtmosphereGlow({ materialRef }: AtmosphereGlowProps) {
   );
 
   return (
-    <mesh scale={ATMOSPHERE_RADIUS}>
+    <mesh scale={ATMOSPHERE_RADIUS} renderOrder={3}>
       <sphereGeometry args={[1, ATMOSPHERE_SEGMENTS, ATMOSPHERE_SEGMENTS]} />
       <shaderMaterial
         ref={materialRef}

@@ -5,10 +5,15 @@ import { EARTH_REVEAL_CAMERA, journey, type CameraPose } from '../data/journey';
 import { buildTimeline } from '../data/timeline';
 import { quaternionForLatLng } from './latLng';
 import { progressStore } from './progressStore';
+import { revealCameraStore } from './revealCameraStore';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 import { EARTH_MOBILE_BREAKPOINT } from './responsive';
 
 const MOBILE_BREAKPOINT = EARTH_MOBILE_BREAKPOINT;
+
+// How far (in Earth-radius units) the camera bulges outward at the midpoint
+// of a city-to-city transition — see the transitionArc comment below.
+const TRANSITION_ARC_HEIGHT = 0.85;
 
 interface CameraKeyframe {
   progress: number;
@@ -98,9 +103,28 @@ export function CameraRig({ earthGroupRef }: CameraRigProps) {
     group.quaternion.copy(quaternion);
 
     // Cinematic framing — plain per-field lerp between the same two keyframes.
+    // While still within the reveal→first-waypoint span, the lower bound's
+    // distance is read live from revealCameraStore instead of the frozen
+    // EARTH_REVEAL_CAMERA constant — this is what makes the pre-scroll auto
+    // reveal (EarthCanvas.tsx) an actual camera dolly-in rather than a static
+    // shot with only opacity animating. Once that reveal tween completes,
+    // revealCameraStore settles to the same constant, so this is a no-op for
+    // the rest of the scroll-driven journey.
+    const lowerDistance = lower === keyframes[0] ? revealCameraStore.distance : lower.pose.distance;
+    // City-to-city transitions arc outward at the midpoint rather than
+    // dollying straight from one arrival distance to the next — a wider
+    // pull-back partway through, then back in, reads as "lifting off to see
+    // more of the globe, then swooping down on the next destination" instead
+    // of a flat linear zoom. Gated to real waypoint→waypoint legs only (not
+    // the initial reveal→first-arrival approach, which already has its own
+    // dedicated dolly via revealCameraStore) and skipped under reduced
+    // motion, which drops added camera travel the same way it drops the
+    // reveal dolly and the marker's overshoot ease.
+    const isWaypointTransition = lower !== keyframes[0];
+    const transitionArc = isWaypointTransition && !prefersReducedMotion ? TRANSITION_ARC_HEIGHT * Math.sin(Math.PI * t) : 0;
     // Mobile backs off the distance slightly (more margin around the planet,
     // so labels near the limb have somewhere to go instead of clipping).
-    const distance = lerp(lower.pose.distance, upper.pose.distance, t) * (isMobile ? 1.22 : 1);
+    const distance = (lerp(lowerDistance, upper.pose.distance, t) + transitionArc) * (isMobile ? 1.22 : 1);
     const fov = lerp(lower.pose.fov, upper.pose.fov, t);
 
     // Mobile gets its own responsive framing rather than the desktop offsets

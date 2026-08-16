@@ -30,16 +30,3 @@ export function quaternionForLatLng(lat: number, lng: number): Quaternion {
   const point = latLngToVector3(lat, lng, 1).normalize();
   return new Quaternion().setFromUnitVectors(point, FRONT);
 }
-
-/** Great-circle interpolation between two unit vectors — used by RouteLine to
- *  draw an arc that follows the sphere's surface rather than cutting through it. */
-export function slerpOnSphere(a: Vector3, b: Vector3, t: number): Vector3 {
-  const start = a.clone().normalize();
-  const end = b.clone().normalize();
-  const dot = Math.min(1, Math.max(-1, start.dot(end)));
-  const theta = Math.acos(dot) * t;
-  const relative = end.sub(start.clone().multiplyScalar(dot));
-  if (relative.lengthSq() < 1e-10) return start;
-  relative.normalize();
-  return start.clone().multiplyScalar(Math.cos(theta)).add(relative.multiplyScalar(Math.sin(theta)));
-}

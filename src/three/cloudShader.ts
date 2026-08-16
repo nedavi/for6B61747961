@@ -18,6 +18,10 @@ export const cloudFragmentShader = /* glsl */ `
 uniform sampler2D cloudMap;
 uniform vec3 sunDirection;
 uniform float uOpacity;
+// Per-layer alpha ceiling — lets a "low"/dense deck and a "high"/wispy deck
+// share the same density texture while reading as two different cloud
+// layers rather than one texture duplicated (three/CloudLayer.tsx).
+uniform float layerAlphaScale;
 
 varying vec2 vUv;
 varying vec3 vNormalW;
@@ -36,7 +40,7 @@ void main() {
   vec3 shadowColor = vec3(0.05, 0.06, 0.09);
   vec3 color = mix(shadowColor, litColor, lit);
 
-  float alpha = density * uOpacity * mix(0.22, 0.62, lit);
+  float alpha = density * uOpacity * mix(0.22, 0.62, lit) * layerAlphaScale;
   gl_FragColor = vec4(color, alpha);
 }
 `;

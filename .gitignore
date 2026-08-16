@@ -4,3 +4,4 @@ dist-ssr
 *.local
 npm-debug.log*
 .DS_Store
+repomix-output.xml

@@ -1,76 +1,118 @@
 import { mulberry32 } from './seededRandom';
 
-// An authored, abstract celestial map — not a zodiac. A small fixed set of
-// "anchor" stars (brighter, deterministic positions) and a handful of thin
-// connections between them, each tagged with the normalized story progress
-// (0..1 across the six story.ts steps) at which it starts becoming visible.
-// Nothing here is randomized per-render; the seed only decides *where* the
-// anchors sit once, at module load — same as visual/seededRandom.ts's STARS.
+// An authored, abstract celestial background — deliberately NOT connected by
+// lines (removed per instruction: no visible constellation-line geometry).
+// Instead, a small fixed set of stars is grouped into loose clusters; each
+// group has a per-story-step target { brightness, sizeScale, drift }, and
+// every star eases toward its group's current target continuously (see
+// AmbientBackground.tsx) rather than snapping when the step changes. The
+// viewer should read this as "the sky is quietly reorganizing itself," not
+// as a diagram.
 
-export interface AnchorStar {
+export interface ConstellationStar {
   id: string;
-  x: number; // 0..1, fraction of viewport width
-  y: number; // 0..1, fraction of viewport height
-  radius: number;
-  /** Story progress (0..1) at which this anchor starts brightening. */
-  revealAt: number;
-  /** Final target opacity once fully revealed, before any twinkle. */
-  targetOpacity: number;
+  groupId: string;
+  x: number; // 0..1, base anchor position, fraction of viewport width
+  y: number; // 0..1
+  baseRadius: number;
+  /** Pointer-parallax depth, same convention as seededRandom.ts's STARS. */
+  parallax: number;
 }
 
-export interface Connection {
-  id: string;
-  a: string; // AnchorStar id
-  b: string; // AnchorStar id
-  /** Story progress (0..1) at which this line starts drawing. */
-  revealAt: number;
+export interface GroupState {
+  /** Target opacity multiplier for every star in this group, 0..1. */
+  brightness: number;
+  /** Target radius multiplier relative to baseRadius. */
+  sizeScale: number;
+  /** Tiny target positional offset (fraction of viewport), so stars drift
+   *  rather than sit dead still — kept small enough to read as alive, not
+   *  as a screensaver. */
+  drift: { x: number; y: number };
 }
 
-const SEED = 9001;
+const SEED = 4471;
 const random = mulberry32(SEED);
 
-function pick(xMin: number, xMax: number, yMin: number, yMax: number) {
-  return {
+function starsInRegion(groupId: string, count: number, xMin: number, xMax: number, yMin: number, yMax: number): ConstellationStar[] {
+  return Array.from({ length: count }, (_, i) => ({
+    id: `${groupId}-${i}`,
+    groupId,
     x: xMin + random() * (xMax - xMin),
     y: yMin + random() * (yMax - yMin),
-  };
+    baseRadius: 1.3 + random() * 0.9,
+    parallax: 1.6 + random() * 1.4,
+  }));
 }
 
-// Three loose clusters, kept mostly out of the dead-center content column so
-// they read as atmosphere behind the question text rather than competing
-// with it. Revealed in order across the six story steps (index / 5 = 0, 0.2,
-// 0.4, 0.6, 0.8, 1.0) — see the per-anchor/connection comments below.
-const a0 = { id: 'a0', ...pick(0.06, 0.22, 0.12, 0.32), radius: 1.6, revealAt: 0.0, targetOpacity: 0.85 };
-const a1 = { id: 'a1', ...pick(0.1, 0.28, 0.4, 0.62), radius: 1.4, revealAt: 0.02, targetOpacity: 0.8 };
-const a2 = { id: 'a2', ...pick(0.18, 0.34, 0.68, 0.86), radius: 1.5, revealAt: 0.2, targetOpacity: 0.82 };
-
-const b0 = { id: 'b0', ...pick(0.78, 0.94, 0.1, 0.3), radius: 1.5, revealAt: 0.4, targetOpacity: 0.8 };
-const b1 = { id: 'b1', ...pick(0.82, 0.96, 0.34, 0.52), radius: 1.3, revealAt: 0.42, targetOpacity: 0.78 };
-const b2 = { id: 'b2', ...pick(0.74, 0.9, 0.56, 0.76), radius: 1.5, revealAt: 0.6, targetOpacity: 0.82 };
-const b3 = { id: 'b3', ...pick(0.8, 0.95, 0.78, 0.92), radius: 1.3, revealAt: 0.8, targetOpacity: 0.78 };
-
-const c0 = { id: 'c0', ...pick(0.42, 0.58, 0.06, 0.18), radius: 1.7, revealAt: 0.6, targetOpacity: 0.9 };
-const c1 = { id: 'c1', ...pick(0.4, 0.6, 0.88, 0.96), radius: 1.6, revealAt: 1.0, targetOpacity: 0.85 };
-
-export const ANCHOR_STARS: AnchorStar[] = [a0, a1, a2, b0, b1, b2, b3, c0, c1];
-
-export const CONNECTIONS: Connection[] = [
-  // Cluster A draws first, across steps 1–3 (choice → text → choice).
-  { id: 'a0-a1', a: 'a0', b: 'a1', revealAt: 0.18 },
-  { id: 'a1-a2', a: 'a1', b: 'a2', revealAt: 0.38 },
-  // Cluster B begins at the physical task/code beat — "a different cluster
-  // quietly lights" while the rest of the network holds still.
-  { id: 'b0-b1', a: 'b0', b: 'b1', revealAt: 0.58 },
-  // Code success — a connection completes.
-  { id: 'b1-b2', a: 'b1', b: 'b2', revealAt: 0.8 },
-  // Final question — separate groups subtly align via one long bridge.
-  { id: 'a2-c0', a: 'a2', b: 'c0', revealAt: 0.96 },
-  { id: 'b2-c1', a: 'b2', b: 'c1', revealAt: 1.0 },
+// Four loose, unconnected clusters, kept mostly out of the dead-center
+// column so they read as atmosphere behind the question text.
+export const CONSTELLATION_STARS: ConstellationStar[] = [
+  ...starsInRegion('north', 3, 0.06, 0.24, 0.1, 0.34),
+  ...starsInRegion('east', 4, 0.78, 0.95, 0.12, 0.5),
+  ...starsInRegion('south', 3, 0.42, 0.6, 0.76, 0.94),
+  ...starsInRegion('west', 3, 0.08, 0.26, 0.62, 0.88),
 ];
 
-/** Smoothstep-eased reveal fraction (0..1) for a given threshold and window width. */
-export function revealProgress(storyProgress: number, revealAt: number, window = 0.16): number {
-  const t = (storyProgress - revealAt) / window;
-  const c = Math.min(1, Math.max(0, t));
-  return c * c * (3 - 2 * c);
-}
+export const GROUP_IDS = ['north', 'east', 'south', 'west'] as const;
+export type GroupId = (typeof GROUP_IDS)[number];
+
+const DIM: GroupState = { brightness: 0.16, sizeScale: 0.85, drift: { x: 0, y: 0 } };
+
+/**
+ * One state per story.ts step (indices 0..5) — the six story steps map
+ * directly to these, so no separate progress-bucket math is needed. Named
+ * loosely after the brief's A/B/C/D/Final language in comments:
+ *  - disappear (A): first group dominant.
+ *  - anywhere (B): second group slowly emerges.
+ *  - matters-more (C): first group fades, a third becomes brighter.
+ *  - physical-clue (task, C-hold): motion settles, a different cluster
+ *    quietly lights (physical-task background phase already slows motionSpeed).
+ *  - clue-code (D): code success — a new group brightens.
+ *  - trust (Final): groups slowly align toward a shared, even brightness.
+ */
+export const CONSTELLATION_STATES: Record<GroupId, GroupState>[] = [
+  // 0 — disappear: north dominant
+  { north: { brightness: 0.95, sizeScale: 1.3, drift: { x: 0, y: -0.004 } }, east: DIM, south: DIM, west: DIM },
+  // 1 — anywhere: east emerges, north still present
+  {
+    north: { brightness: 0.55, sizeScale: 1.05, drift: { x: -0.003, y: 0 } },
+    east: { brightness: 0.85, sizeScale: 1.2, drift: { x: 0.004, y: 0.003 } },
+    south: DIM,
+    west: DIM,
+  },
+  // 2 — matters-more: north fades, south brightens
+  {
+    north: { brightness: 0.2, sizeScale: 0.9, drift: { x: -0.005, y: 0.004 } },
+    east: { brightness: 0.5, sizeScale: 1.0, drift: { x: 0.002, y: -0.002 } },
+    south: { brightness: 0.9, sizeScale: 1.25, drift: { x: 0, y: -0.003 } },
+    west: DIM,
+  },
+  // 3 — physical-clue (task): motion settles, west quietly lights
+  {
+    north: { brightness: 0.15, sizeScale: 0.85, drift: { x: -0.006, y: 0.005 } },
+    east: { brightness: 0.4, sizeScale: 0.95, drift: { x: 0.003, y: -0.001 } },
+    south: { brightness: 0.55, sizeScale: 1.05, drift: { x: 0.001, y: -0.004 } },
+    west: { brightness: 0.75, sizeScale: 1.2, drift: { x: -0.002, y: 0.003 } },
+  },
+  // 4 — clue-code: code success, west brightens further
+  {
+    north: { brightness: 0.15, sizeScale: 0.85, drift: { x: -0.007, y: 0.006 } },
+    east: { brightness: 0.3, sizeScale: 0.9, drift: { x: 0.004, y: 0.001 } },
+    south: { brightness: 0.5, sizeScale: 1.0, drift: { x: 0.002, y: -0.005 } },
+    west: { brightness: 0.95, sizeScale: 1.3, drift: { x: -0.003, y: 0.004 } },
+  },
+  // 5 — trust (final question): groups slowly align to a shared brightness
+  {
+    north: { brightness: 0.68, sizeScale: 1.1, drift: { x: -0.004, y: 0.003 } },
+    east: { brightness: 0.72, sizeScale: 1.1, drift: { x: 0.003, y: 0.002 } },
+    south: { brightness: 0.7, sizeScale: 1.1, drift: { x: 0.001, y: -0.003 } },
+    west: { brightness: 0.74, sizeScale: 1.1, drift: { x: -0.002, y: 0.002 } },
+  },
+];
+
+// Once space-transition begins, every group eases toward this shared,
+// unremarkable-field state — the groups stop reading as distinct clusters
+// and quietly become indistinguishable from the rest of the star field,
+// which is what lets the handoff into the WebGL star field feel continuous
+// (the brighter members simply persist as slightly-above-average stars).
+export const DISSOLVED_STATE: GroupState = { brightness: 0.55, sizeScale: 1.0, drift: { x: 0, y: 0 } };

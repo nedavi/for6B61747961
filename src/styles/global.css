@@ -580,26 +580,54 @@ body {
   }
 }
 
-/* ---------- Waypoint Marker (DOM overlay, positioned via drei Html) ---------- */
+/* ---------- Waypoint Marker (DOM overlay, positioned via drei Html) ----------
+   Minimal monochrome pin, not the red Google Maps teardrop — thin outline,
+   small filled center dot, restrained white glow. Pin and label opacity/scale
+   are driven imperatively by GSAP (three/WaypointMarker.tsx), not CSS
+   transitions, so the entrance overshoot and staggered exit (label first,
+   then pin) can be authored precisely. */
 
+/* Html's `center` prop centers THIS element's own box on the projected
+   geographic point — so the box must be exactly the pin glyph's own
+   footprint (16x21, zero height here since the pin is absolutely
+   positioned by its own bottom edge). Earlier this was a flex column
+   containing pin+label together, which meant the projected point centered
+   the whole two-line block instead of the pin — the label's height silently
+   dragged the pin glyph ~100px away from the actual target coordinate. The
+   label is now positioned independently below the pin, so it never affects
+   where the pin sits relative to the real lat/lng. */
 .waypoint-marker {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  text-align: center;
-  transform: translateY(-20px);
+  position: relative;
+  width: 16px;
+  height: 0;
   pointer-events: none;
 }
 
+.waypoint-marker__pin {
+  display: block;
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  color: var(--color-text-primary);
+  filter: drop-shadow(0 0 6px rgba(243, 237, 228, 0.55)) drop-shadow(0 1px 4px rgba(0, 0, 0, 0.6));
+  opacity: 0;
+  transform: translateX(-50%) scale(0.75);
+  transform-origin: 50% 100%;
+}
+
 .waypoint-marker__label {
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  transform: translateX(-50%);
   font-size: var(--text-label);
   letter-spacing: var(--tracking-label);
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   color: var(--color-text-primary);
-  text-shadow: 0 0 14px var(--glow-atmosphere), 0 2px 10px rgba(0, 0, 0, 0.7);
+  text-shadow: 0 0 10px rgba(243, 237, 228, 0.4), 0 2px 10px rgba(0, 0, 0, 0.75);
   white-space: nowrap;
+  opacity: 0;
 }
 
 @media (max-width: 640px) {
@@ -609,6 +637,59 @@ body {
 
   .waypoint-marker__label {
     font-size: 12px;
+  }
+}
+
+/* ---------- City postcard (full-screen takeover at closest approach) ---------- */
+/* Opacity/play-state are set imperatively by scenes/earth/CityPostcard.tsx's
+   own rAF loop, not by a CSS transition — see that file for why (it lives
+   outside the R3F Canvas, so it can't read progressStore via useFrame the
+   way WaypointMarker does). z-index sits above both the WebGL canvas
+   (.persistent-visual-layer, z-index 0) and the waypoint markers
+   (drei's Html zIndexRange caps them at 2) so the takeover genuinely
+   replaces the globe rather than layering under/between existing UI. */
+.city-postcard {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  overflow: hidden;
+  background: #000;
+}
+
+.city-postcard__media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.city-postcard__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(5, 5, 8, 0.65) 0%, rgba(5, 5, 8, 0) 38%);
+  pointer-events: none;
+}
+
+.city-postcard__label {
+  position: relative;
+  margin: 0;
+  padding: var(--spacing-36);
+  font-size: var(--text-destination);
+  letter-spacing: var(--tracking-destination);
+  font-weight: var(--font-weight-light);
+  color: var(--color-text-primary);
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.6);
+}
+
+@media (max-width: 640px) {
+  .city-postcard__label {
+    padding: var(--spacing-24);
+    font-size: var(--text-transition);
+    letter-spacing: normal;
   }
 }
 

@@ -7,20 +7,48 @@ import { SUN_DIRECTION } from './sunDirection';
 import { isMobileViewport } from './responsive';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 
-const CLOUD_RADIUS = 1.008;
-const CLOUD_SEGMENTS = 72;
-// Radians/second — imperceptible in any single glance, but the planet is
-// never perfectly frozen even when scroll is idle (Part 18 "Earth idle
-// life"). This is layered as the mesh's OWN local rotation on top of the
-// parent Earth group's geographic-targeting quaternion, so it never fights
-// CameraRig's rotation — see EarthCanvas.tsx for the group nesting.
-const DRIFT_RADIANS_PER_SECOND = 0.0022;
+interface CloudDeckConfig {
+  radius: number;
+  segments: number;
+  /** Radians/second — imperceptible in any single glance, but the planet is
+   *  never perfectly frozen even when scroll is idle (Part 18 "Earth idle
+   *  life"). Layered as the mesh's OWN local rotation on top of the parent
+   *  Earth group's geographic-targeting quaternion, so it never fights
+   *  CameraRig's rotation — see EarthCanvas.tsx for the group nesting. */
+  driftRadiansPerSecond: number;
+  /** Starting offset so the two decks don't look like one texture duplicated
+   *  at the very first frame, before their independent drift has had time to
+   *  diverge them. */
+  initialRotation: number;
+  layerAlphaScale: number;
+  renderOrder: number;
+}
+
+// Two decks sharing one density texture (public/assets/earth/earth-clouds.webp)
+// but different radius/speed/opacity/starting-offset — reads as a low, denser
+// deck and a high, wispier deck rather than a single flat texture sliding over
+// the planet (Part 3). Real multi-layer cloud photography would be nicer still,
+// but two decks of the one legitimate NASA-derived density map is a reasonable
+// depth cue without inventing cloud geography that doesn't exist.
+export const CLOUD_DECKS: Record<'low' | 'high', CloudDeckConfig> = {
+  low: { radius: 1.006, segments: 72, driftRadiansPerSecond: 0.0016, initialRotation: 0, layerAlphaScale: 1, renderOrder: 1 },
+  high: {
+    radius: 1.014,
+    segments: 56,
+    driftRadiansPerSecond: -0.0009,
+    initialRotation: 1.7,
+    layerAlphaScale: 0.55,
+    renderOrder: 2,
+  },
+};
 
 interface CloudLayerProps {
   materialRef: RefObject<ShaderMaterial | null>;
+  deck: 'low' | 'high';
 }
 
-export function CloudLayer({ materialRef }: CloudLayerProps) {
+export function CloudLayer({ materialRef, deck }: CloudLayerProps) {
+  const config = CLOUD_DECKS[deck];
   const meshRef = useRef<Mesh>(null);
   const prefersReducedMotion = usePrefersReducedMotion();
   const isMobile = useMemo(() => isMobileViewport(), []);
@@ -32,18 +60,19 @@ export function CloudLayer({ materialRef }: CloudLayerProps) {
       cloudMap: { value: cloudMap },
       sunDirection: { value: SUN_DIRECTION },
       uOpacity: { value: 0 },
+      layerAlphaScale: { value: config.layerAlphaScale },
     }),
-    [cloudMap],
+    [cloudMap, config.layerAlphaScale],
   );
 
   useFrame((_, delta) => {
     if (prefersReducedMotion || !meshRef.current) return;
-    meshRef.current.rotation.y += DRIFT_RADIANS_PER_SECOND * delta;
+    meshRef.current.rotation.y += config.driftRadiansPerSecond * delta;
   });
 
   return (
-    <mesh ref={meshRef} scale={CLOUD_RADIUS}>
-      <sphereGeometry args={[1, CLOUD_SEGMENTS, CLOUD_SEGMENTS]} />
+    <mesh ref={meshRef} scale={config.radius} rotation-y={config.initialRotation} renderOrder={config.renderOrder}>
+      <sphereGeometry args={[1, config.segments, config.segments]} />
       <shaderMaterial
         ref={materialRef}
         vertexShader={cloudVertexShader}
