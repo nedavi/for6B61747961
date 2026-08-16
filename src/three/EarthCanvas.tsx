@@ -1,12 +1,14 @@
 import { Suspense, useEffect, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { gsap } from 'gsap';
-import { NoToneMapping, SRGBColorSpace, type Group, type Material, type Mesh, type ShaderMaterial } from 'three';
+import { NoToneMapping, SRGBColorSpace, type Group, type Mesh, type ShaderMaterial } from 'three';
 import { Earth } from './Earth';
+import { CloudLayer } from './CloudLayer';
 import { AtmosphereGlow } from './AtmosphereGlow';
 import { StarField } from './StarField';
 import { CameraRig } from './CameraRig';
 import { WaypointMarkers } from './WaypointMarkers';
+import { RegionalDetail } from './RegionalDetail';
 import { SUN_DIRECTION } from './sunDirection';
 import { EARTH_REVEAL_CAMERA } from '../data/journey';
 import { revealCameraStore, REVEAL_START_DISTANCE } from './revealCameraStore';
@@ -31,30 +33,29 @@ const sunLightPosition: [number, number, number] = [
 export function EarthCanvas({ revealed, onRevealed }: EarthCanvasProps) {
   const earthGroupRef = useRef<Group>(null);
   const earthMeshRef = useRef<Mesh>(null);
-  const earthMaterialRef = useRef<Material>(null);
-  const earthMaterialsRef = useRef<Material[]>([]);
+  const earthMaterialRef = useRef<ShaderMaterial>(null);
+  const cloudLowMaterialRef = useRef<ShaderMaterial>(null);
+  const cloudHighMaterialRef = useRef<ShaderMaterial>(null);
   const atmosphereMaterialRef = useRef<ShaderMaterial>(null);
   const hasRevealedRef = useRef(false);
   const prefersReducedMotion = usePrefersReducedMotion();
 
   // Auto-reveal — Earth genuinely arrives OUT OF the cosmos rather than
-  // fading in after it. Sequenced, not simultaneous:
-  //   1. Atmospheric haze (this project's own rim-light shell, layered
-  //      outside the model's own atmosphere mesh) blooms in first, in
-  //      empty space — a faint blue glow before there's a planet to attach
-  //      it to.
-  //   2. Every material in the loaded model (Earth surface + clouds +
-  //      atmosphere shell, all part of the single earth-model.glb scene —
-  //      see three/Earth.tsx) fades in together as one object, matching how
-  //      the source file itself was authored. This is simpler than the
-  //      previous from-scratch pipeline's staged "silhouette, then surface,
-  //      then clouds catch up" choreography, which depended on independently
-  //      controllable Earth/cloud materials that no longer exist as
-  //      separate objects.
-  //   3. In parallel, the camera itself dollies in (revealCameraStore, read
-  //      every frame by CameraRig) from roughly 1.9x EARTH_REVEAL_CAMERA's
-  //      resting distance down to it — an actual approach, not a static
-  //      shot with an opacity fade laid over it.
+  // fading in after it (a explicit visual-direction correction: the previous
+  // version held distance fixed and only animated opacity, so nothing ever
+  // read as "flying toward Earth"). Sequenced, not simultaneous:
+  //   1. Atmospheric haze (the future rim-light sphere) blooms in first, in
+  //      empty space — a faint blue glow before there's a planet to attach it to.
+  //   2. Earth's own opacity resolves in TWO stages: a quick, dim silhouette
+  //      (roughly a third of the way to full brightness) that holds briefly
+  //      while the camera is still closing in, then continues brightening
+  //      into full surface detail — "silhouette first, then the surface
+  //      resolves," not one flat fade.
+  //   3. Clouds catch up shortly after the surface is already legible.
+  //   4. In parallel with all of the above, the camera itself dollies in
+  //      (revealCameraStore, read every frame by CameraRig) from roughly 1.9x
+  //      EARTH_REVEAL_CAMERA's resting distance down to it — an actual
+  //      approach, not a static shot with an opacity fade laid over it.
   useEffect(() => {
     if (!revealed || hasRevealedRef.current) return;
     hasRevealedRef.current = true;
@@ -71,35 +72,17 @@ export function EarthCanvas({ revealed, onRevealed }: EarthCanvasProps) {
       { distance: EARTH_REVEAL_CAMERA.distance, duration: duration * 1.15, ease: 'power2.inOut' },
       prefersReducedMotion ? 0 : 0.15,
     );
-    const modelOpacity = { value: 0 };
-    tl.to(
-      modelOpacity,
-      {
-        value: 1,
-        duration: duration * 0.75,
-        ease: 'power2.inOut',
-        onUpdate: () => {
-          for (const material of earthMaterialsRef.current) material.opacity = modelOpacity.value;
-        },
-        onComplete: () => {
-          // Earth's own surface material is forced `transparent = true` only
-          // so this fade can animate its opacity — the source file's alphaMode
-          // was OPAQUE, and leaving it flagged transparent forever afterward
-          // puts it in three.js's transparent render queue permanently, which
-          // sorts by object instead of per-triangle. With the clouds shell
-          // (genuinely, permanently transparent — its texture has real alpha
-          // cutout) sitting at nearly the same radius, that per-object sort
-          // produces inconsistent depth ordering between the two coincident
-          // spheres — worst at the poles' thin triangles — which read as a
-          // banding/fan artifact with no connection to either mesh's own
-          // geometry, material, or texture (ARCHITECTURE.md §K9). Once the
-          // fade finishes, Earth's surface is opaque again for the rest of
-          // its life, exactly like the source file intended.
-          if (earthMaterialRef.current) earthMaterialRef.current.transparent = false;
-        },
-      },
-      prefersReducedMotion ? 0 : 0.35,
-    );
+    if (earthMaterialRef.current) {
+      const earthOpacity = earthMaterialRef.current.uniforms.uOpacity;
+      tl.to(earthOpacity, { value: 0.32, duration: duration * 0.35, ease: 'power1.out' }, prefersReducedMotion ? 0 : 0.35);
+      tl.to(earthOpacity, { value: 1, duration: duration * 0.55, ease: 'power2.inOut' }, '+=0.1');
+    }
+    if (cloudLowMaterialRef.current) {
+      tl.to(cloudLowMaterialRef.current.uniforms.uOpacity, { value: 1, duration: duration * 0.5, ease: 'power2.out' }, '-=0.3');
+    }
+    if (cloudHighMaterialRef.current) {
+      tl.to(cloudHighMaterialRef.current.uniforms.uOpacity, { value: 1, duration: duration * 0.55, ease: 'power2.out' }, '-=0.35');
+    }
   }, [revealed, prefersReducedMotion, onRevealed]);
 
   return (
@@ -111,18 +94,14 @@ export function EarthCanvas({ revealed, onRevealed }: EarthCanvasProps) {
       <ambientLight intensity={0.05} />
       <directionalLight position={sunLightPosition} intensity={1.2} />
       <StarField />
-      {/* GalaxyField (three/GalaxyField.tsx) temporarily disabled — its
-          current placement (a subtle corner accent near Earth) isn't its
-          intended home; the user wants it as an interactive background for
-          the Intro/Question/Answer flow instead (see ARCHITECTURE.md §K9's
-          "not done this pass" note), and having it visible here in the
-          meantime just looks like a stray leftover next to Earth rather
-          than a deliberate choice. Re-enable once it's actually relocated. */}
       <Suspense fallback={null}>
         <group ref={earthGroupRef}>
-          <Earth meshRef={earthMeshRef} materialRef={earthMaterialRef} materialsRef={earthMaterialsRef} />
+          <Earth meshRef={earthMeshRef} materialRef={earthMaterialRef} />
+          <CloudLayer deck="low" materialRef={cloudLowMaterialRef} />
+          <CloudLayer deck="high" materialRef={cloudHighMaterialRef} />
           <WaypointMarkers earthMeshRef={earthMeshRef} />
         </group>
+        <RegionalDetail earthMaterialRef={earthMaterialRef} />
         <AtmosphereGlow materialRef={atmosphereMaterialRef} />
         <CameraRig earthGroupRef={earthGroupRef} />
       </Suspense>

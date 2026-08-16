@@ -6,4 +6,4 @@ import { Vector3 } from 'three';
 // agrees with what the shaders compute. Fixed rather than animated: as the Earth
 // group rotates to face different waypoints, different geography sweeps under this
 // constant terminator, which is what makes day/night look physically grounded.
-export const SUN_DIRECTION = new Vector3(-3, 1.1, 0.3).normalize();
+export const SUN_DIRECTION = new Vector3(-3, 1.1, 2.4).normalize();
