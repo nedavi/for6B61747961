@@ -703,13 +703,13 @@ body {
   }
 }
 
-/* ---------- Destination Sidebar (left panel, revealed on settled arrival) ---------- */
-/* Outer element only positions the slot (fixed, vertically centered on the
-   left edge — the negative space K2's camera composition already reserves,
-   since Earth sits weighted lower-right at every waypoint). The inner
-   `__panel` is what CityPostcard-style code (scenes/earth/DestinationSidebar.tsx)
-   drives via rAF + progressStore, so its own opacity/transform never fights
-   the outer element's CSS positioning. */
+/* ---------- Destination Sidebar (edge panel, revealed on settled arrival) ---------- */
+/* Outer element only positions the slot (fixed, vertically centered on
+   whichever edge this waypoint's own camera framing leaves empty — see the
+   `side` prop / --right modifier below, §K15). The inner `__panel` is what
+   CityPostcard-style code (scenes/earth/DestinationSidebar.tsx) drives via
+   rAF + progressStore, so its own opacity/transform never fights the outer
+   element's CSS positioning. */
 .destination-sidebar {
   position: fixed;
   top: 50%;
@@ -718,6 +718,16 @@ body {
   z-index: 2;
   width: min(360px, calc(100vw - var(--spacing-36) * 2));
   pointer-events: none;
+}
+
+/* Mirrors to the right edge for waypoints whose camera framing shifts Earth
+   toward the left of frame instead (EarthJourneyScene derives `side` from
+   that waypoint's own `camera.lookAtOffset.x` sign, §K15) — without this,
+   the sidebar would sit directly over the marker/label for roughly half of
+   this journey's waypoints. */
+.destination-sidebar--right {
+  left: auto;
+  right: var(--spacing-36);
 }
 
 .destination-sidebar__panel {

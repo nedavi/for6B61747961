@@ -12,24 +12,37 @@ const MARKER_RADIUS = 1.005; // fractionally above the surface, avoids z-fightin
 
 // Hysteresis gap so the marker doesn't flicker in/out if the user scrolls
 // back and forth right at the boundary — enter and exit use different
-// thresholds against the same scroll-driven envelope.
+// thresholds against the same scroll-driven envelope. These stay fixed
+// (unlike the fade/hold durations below) since they're fractions of the
+// envelope's own height (0..1), not the scroll axis.
 const ENTER_THRESHOLD = 0.14;
 const EXIT_THRESHOLD = 0.07;
-
-const FADE_IN = 0.07;
-const HOLD = 0.045;
-const FADE_OUT = 0.09;
 
 function smoothstep(t: number): number {
   const c = Math.min(1, Math.max(0, t));
   return c * c * (3 - 2 * c);
 }
 
-function arrivalEnvelope(progress: number, arrivalAt: number): number {
-  if (progress < arrivalAt - FADE_IN) return 0;
-  if (progress < arrivalAt) return smoothstep((progress - (arrivalAt - FADE_IN)) / FADE_IN);
-  if (progress < arrivalAt + HOLD) return 1;
-  if (progress < arrivalAt + HOLD + FADE_OUT) return 1 - smoothstep((progress - (arrivalAt + HOLD)) / FADE_OUT);
+// §K15: fade-in/hold/fade-out used to be fixed fractions of the *whole*
+// scroll range (0.07/0.045/0.09 ≈ 0.2 total). That was fine when there were
+// 3 widely-spaced waypoints, but with 9 the average segment is only ~0.08
+// wide — a fixed 0.2-wide envelope spilled well into neighboring waypoints'
+// segments, so two markers could be visible/fading at once. Scaling by the
+// waypoint's own segment width keeps the envelope inside its own segment
+// regardless of how many waypoints exist or how their durationWeights compare.
+function envelopeDurations(segmentWidth: number) {
+  return {
+    fadeIn: segmentWidth * 0.22,
+    hold: segmentWidth * 0.4,
+    fadeOut: segmentWidth * 0.2,
+  };
+}
+
+function arrivalEnvelope(progress: number, arrivalAt: number, fadeIn: number, hold: number, fadeOut: number): number {
+  if (progress < arrivalAt - fadeIn) return 0;
+  if (progress < arrivalAt) return smoothstep((progress - (arrivalAt - fadeIn)) / fadeIn);
+  if (progress < arrivalAt + hold) return 1;
+  if (progress < arrivalAt + hold + fadeOut) return 1 - smoothstep((progress - (arrivalAt + hold)) / fadeOut);
   return 0;
 }
 
@@ -60,6 +73,7 @@ function PinGlyph() {
 interface WaypointMarkerProps {
   waypoint: Waypoint;
   arrivalAt: number;
+  segmentWidth: number;
   earthMeshRef: RefObject<Mesh | null>;
 }
 
@@ -70,13 +84,14 @@ interface WaypointMarkerProps {
 // triggered, is a authored GSAP sequence (overshoot entrance, staggered
 // exit) rather than a raw scroll-scrubbed opacity value — a discrete event,
 // not a continuous scrub, matching the requested choreography.
-export function WaypointMarker({ waypoint, arrivalAt, earthMeshRef }: WaypointMarkerProps) {
+export function WaypointMarker({ waypoint, arrivalAt, segmentWidth, earthMeshRef }: WaypointMarkerProps) {
   const pinRef = useRef<HTMLSpanElement>(null);
   const labelRef = useRef<HTMLParagraphElement>(null);
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
   const isVisibleRef = useRef(false);
   const frameCounter = useRef(0);
   const prefersReducedMotion = usePrefersReducedMotion();
+  const { fadeIn, hold, fadeOut } = envelopeDurations(segmentWidth);
 
   const position = latLngToVector3(waypoint.lat, waypoint.lng, MARKER_RADIUS);
 
@@ -88,7 +103,7 @@ export function WaypointMarker({ waypoint, arrivalAt, earthMeshRef }: WaypointMa
     const label = labelRef.current;
     if (!pin || !label) return;
 
-    const envelope = arrivalEnvelope(progressStore.progress, arrivalAt);
+    const envelope = arrivalEnvelope(progressStore.progress, arrivalAt, fadeIn, hold, fadeOut);
 
     if (!isVisibleRef.current && envelope >= ENTER_THRESHOLD) {
       isVisibleRef.current = true;
@@ -123,7 +138,12 @@ export function WaypointMarker({ waypoint, arrivalAt, earthMeshRef }: WaypointMa
       <Html
         center
         occlude={earthMeshRef.current ? [earthMeshRef as RefObject<Mesh>] : undefined}
-        zIndexRange={[2, 0]}
+        // §K15: raised above DestinationSidebar's z-index (2) — the marker/
+        // label must stay legible even where a waypoint's camera framing
+        // happens to place it under the sidebar's screen region (mostly
+        // solved by DestinationSidebar now flipping sides per-waypoint, but
+        // this is the safety net for whatever it doesn't catch).
+        zIndexRange={[3, 1]}
         distanceFactor={4.2}
         style={{ pointerEvents: 'none' }}
       >

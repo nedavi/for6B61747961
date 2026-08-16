@@ -1,53 +1,72 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { CityInfo } from '../../data/journey';
 import { progressStore } from '../../three/progressStore';
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion';
-
-// Deliberately close to WaypointMarker's own arrival envelope (§6) but with a
-// longer HOLD — there's a paragraph and a landmark list to read here, not
-// just a label, so it needs to sit still on screen longer than the pin does.
-const FADE_IN = 0.05;
-const HOLD = 0.09;
-const FADE_OUT = 0.06;
 
 function smoothstep(t: number): number {
   const c = Math.min(1, Math.max(0, t));
   return c * c * (3 - 2 * c);
 }
 
-function proximity(progress: number, arrivalAt: number): number {
-  if (progress < arrivalAt - FADE_IN) return 0;
-  if (progress < arrivalAt) return smoothstep((progress - (arrivalAt - FADE_IN)) / FADE_IN);
-  if (progress < arrivalAt + HOLD) return 1;
-  if (progress < arrivalAt + HOLD + FADE_OUT) return 1 - smoothstep((progress - (arrivalAt + HOLD)) / FADE_OUT);
+// §K15: fade-in/hold/fade-out used to be fixed fractions of the whole scroll
+// range (0.05/0.09/0.06 ≈ 0.2 total) — sized for the original 3 widely-spaced
+// waypoints. With 9, the average segment is only ~0.08 wide, so that fixed
+// envelope spilled well past this waypoint's own segment and into the next
+// one's — a previous waypoint's sidebar staying visible after scrolling well
+// into the next waypoint's territory was exactly this. Scaling by the
+// waypoint's own segment width keeps the envelope inside its own segment
+// regardless of how many waypoints exist or how their durationWeights compare.
+function computeEnvelope(segmentWidth: number) {
+  return {
+    fadeIn: segmentWidth * 0.22,
+    hold: segmentWidth * 0.44,
+    fadeOut: segmentWidth * 0.2,
+  };
+}
+
+function proximity(progress: number, arrivalAt: number, fadeIn: number, hold: number, fadeOut: number): number {
+  if (progress < arrivalAt - fadeIn) return 0;
+  if (progress < arrivalAt) return smoothstep((progress - (arrivalAt - fadeIn)) / fadeIn);
+  if (progress < arrivalAt + hold) return 1;
+  if (progress < arrivalAt + hold + fadeOut) return 1 - smoothstep((progress - (arrivalAt + hold)) / fadeOut);
   return 0;
 }
 
 interface DestinationSidebarProps {
   info: CityInfo;
   arrivalAt: number;
+  segmentWidth: number;
   label: string;
+  /** Which edge of the screen the panel docks to. Derived by the caller from
+   *  this waypoint's own `camera.lookAtOffset.x` sign (§K15) — that value is
+   *  what actually decides which side of the frame Earth (and therefore the
+   *  marker) lands on, so the sidebar can reliably dock to the *other* side
+   *  instead of guessing or always defaulting to left. */
+  side: 'left' | 'right';
 }
 
-// Left-edge panel revealed once the camera has settled on a waypoint — the
-// same deliberate "one exceptional panel" allowance DESIGN.md gives Gift
-// Reveal, extended here since a description + a landmark photo gallery is
-// genuinely more than a caption can carry. Sits in the negative space K2's
-// camera composition already reserves on the left (Earth is weighted
-// lower-right at every waypoint), so it doesn't compete with the globe or the
-// on-globe marker/label. Opacity/position are driven imperatively from
-// progressStore via rAF, same pattern as CityPostcard — this lives outside
-// the R3F <Canvas>, so it can't useFrame the way WaypointMarker does.
-export function DestinationSidebar({ info, arrivalAt, label }: DestinationSidebarProps) {
+// Edge panel revealed once the camera has settled on a waypoint — the same
+// deliberate "one exceptional panel" allowance DESIGN.md gives Gift Reveal,
+// extended here since a description + a landmark photo gallery is genuinely
+// more than a caption can carry. Docks to whichever side (left/right) K2's
+// camera composition leaves empty for *this specific* waypoint (see `side`
+// above) rather than always the left — half of this journey's camera poses
+// weight Earth toward the left of frame instead of the right, and a
+// fixed-left sidebar was landing directly over the marker/label for those.
+// Opacity/position are driven imperatively from progressStore via rAF, same
+// pattern as CityPostcard — this lives outside the R3F <Canvas>, so it can't
+// useFrame the way WaypointMarker does.
+export function DestinationSidebar({ info, arrivalAt, segmentWidth, label, side }: DestinationSidebarProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
   const prefersReducedMotion = usePrefersReducedMotion();
+  const { fadeIn, hold, fadeOut } = useMemo(() => computeEnvelope(segmentWidth), [segmentWidth]);
 
   useEffect(() => {
     const tick = () => {
       const el = panelRef.current;
       if (el) {
-        const t = proximity(progressStore.progress, arrivalAt);
+        const t = proximity(progressStore.progress, arrivalAt, fadeIn, hold, fadeOut);
         el.style.opacity = String(t);
         el.style.transform = prefersReducedMotion ? 'none' : `translateY(${(1 - t) * 10}px)`;
         el.setAttribute('aria-hidden', t > 0.5 ? 'false' : 'true');
@@ -56,10 +75,10 @@ export function DestinationSidebar({ info, arrivalAt, label }: DestinationSideba
     };
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [arrivalAt, prefersReducedMotion]);
+  }, [arrivalAt, fadeIn, hold, fadeOut, prefersReducedMotion]);
 
   return (
-    <aside className="destination-sidebar">
+    <aside className={`destination-sidebar${side === 'right' ? ' destination-sidebar--right' : ''}`}>
       <div ref={panelRef} className="destination-sidebar__panel" style={{ opacity: 0 }} aria-hidden="true">
         <p className="destination-sidebar__label">{label}</p>
         <p className="destination-sidebar__description">{info.description}</p>

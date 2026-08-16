@@ -21,7 +21,13 @@ export function WaypointMarkers({ earthMeshRef }: WaypointMarkersProps) {
         const segment = timeline.find((s) => s.waypoint?.id === waypoint.id);
         if (!segment) return null;
         return (
-          <WaypointMarker key={waypoint.id} waypoint={waypoint} arrivalAt={segment.end} earthMeshRef={earthMeshRef} />
+          <WaypointMarker
+            key={waypoint.id}
+            waypoint={waypoint}
+            arrivalAt={segment.end}
+            segmentWidth={segment.end - segment.start}
+            earthMeshRef={earthMeshRef}
+          />
         );
       })}
     </>

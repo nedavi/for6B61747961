@@ -45,17 +45,14 @@ export function EarthJourneyScene() {
 
       const scrollLength = Math.max(2, journey.length) * VIEWPORT_HEIGHTS_PER_STOP * window.innerHeight;
 
-      // Snap targets: the very start, plus each waypoint's own arrival
-      // progress (timeline.ts's segment.end) — "concrete states at the
-      // cities," not an arbitrary grid. Scroll itself stays continuous while
-      // the user is actively scrolling (scrub keeps it a live scrub, not a
-      // slideshow); snap only takes over once they stop, easing progress the
-      // rest of the way to whichever state is nearest. Disabled under
-      // reduced motion — an automatic post-release scroll is itself a motion
-      // effect, and every other reduced-motion path in this project drops
-      // the extra movement rather than keeping a softened version of it.
-      const snapTargets = [0, ...timeline.filter((segment) => segment.waypoint).map((segment) => segment.end)];
-
+      // §K15: snap-to-waypoint removed entirely. It made sense with the
+      // original 3 widely-spaced waypoints (snapTo targets far enough apart
+      // that snapping helped land precisely on one); with 9 the targets sit
+      // close together, so GSAP's snap plugin was engaging after almost any
+      // brief scroll pause — even mid-gesture, e.g. between two ticks of an
+      // inertial trackpad scroll — and yanking progress to the nearest
+      // target. Direct feedback was that scrolling felt "jerky," which this
+      // is the likely cause of: continuous scroll now stays continuous.
       const trigger = ScrollTrigger.create({
         trigger: section,
         start: 'top top',
@@ -66,14 +63,6 @@ export function EarthJourneyScene() {
         // wheel-scrollable), but without the smoothing lag, so nothing keeps
         // drifting once the user stops scrolling (Part T).
         scrub: prefersReducedMotion ? true : 1,
-        snap: prefersReducedMotion
-          ? undefined
-          : {
-              snapTo: snapTargets,
-              duration: { min: 0.35, max: 1.1 },
-              delay: 0.12,
-              ease: 'power2.inOut',
-            },
         onUpdate: (self) => {
           progressStore.progress = self.progress;
           if (self.progress > 0.002 && !hasScrolled) setHasScrolled(true);
@@ -116,6 +105,7 @@ export function EarthJourneyScene() {
             key={waypoint.id}
             postcard={waypoint.postcard}
             arrivalAt={segment.end}
+            segmentWidth={segment.end - segment.start}
             label={waypoint.label}
           />
         );
@@ -124,8 +114,25 @@ export function EarthJourneyScene() {
         if (!waypoint.info) return null;
         const segment = timeline.find((s) => s.waypoint?.id === waypoint.id);
         if (!segment) return null;
+        // §K15: the sidebar docks to whichever side this waypoint's own
+        // camera framing leaves empty. lookAtOffset.x > 0 shifts Earth toward
+        // the right of frame (journey.ts's own doc comment on CameraPose) —
+        // that's the "sidebar on the left" case this journey started with.
+        // Roughly half of this journey's waypoints use a negative x for
+        // orbital variety, which shifts Earth (and its marker) toward the
+        // LEFT instead — for those, a fixed-left sidebar was landing right on
+        // top of the marker/label. Docking to the opposite side is a direct
+        // consequence of data already on the waypoint, not a guess.
+        const side: 'left' | 'right' = (waypoint.camera.lookAtOffset?.x ?? 0) < 0 ? 'right' : 'left';
         return (
-          <DestinationSidebar key={waypoint.id} info={waypoint.info} arrivalAt={segment.end} label={waypoint.label} />
+          <DestinationSidebar
+            key={waypoint.id}
+            info={waypoint.info}
+            arrivalAt={segment.end}
+            segmentWidth={segment.end - segment.start}
+            label={waypoint.label}
+            side={side}
+          />
         );
       })}
     </section>
