@@ -29,15 +29,16 @@ void main() {
   // radius much closer to the surface (see AtmosphereGlow.tsx) is what
   // actually looks like atmosphere rather than a glowing outline.
   float grazing = clamp(1.0 - abs(dot(vNormalV, vec3(0.0, 0.0, 1.0))), 0.0, 1.0);
-  float rim = pow(grazing, 5.5);
+  float rim = pow(grazing, 3.8);
 
   float sunFactor = smoothstep(-0.3, 0.5, dot(normalize(vNormalW), normalize(sunDirection)));
-  float intensity = rim * mix(0.08, 0.7, sunFactor);
+  float intensity = rim * mix(0.18, 1.4, sunFactor);
 
-  // Desaturated toward white — a physically plausible scattering edge is
-  // pale, not saturated neon cyan.
-  vec3 color = mix(glowColor, vec3(0.96, 0.98, 1.0), 0.45);
+  // A vivid, saturated azure rim rather than the desaturated-toward-white
+  // scientific version — the requested look is closer to stylized "Earth
+  // from space" art than a literal scattering simulation.
+  vec3 color = mix(glowColor, vec3(0.96, 0.98, 1.0), 0.2);
 
-  gl_FragColor = vec4(color, intensity * uOpacity * 0.5);
+  gl_FragColor = vec4(color, intensity * uOpacity * 0.85);
 }
 `;

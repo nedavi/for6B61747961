@@ -36,11 +36,11 @@ void main() {
   // Warm-white on the lit side, cool dim on the dark side — clouds should
   // dim into the night the same way the surface below them does, not stay
   // a flat white sticker regardless of terminator.
-  vec3 litColor = vec3(1.0, 0.99, 0.97);
+  vec3 litColor = vec3(1.0, 1.0, 1.0);
   vec3 shadowColor = vec3(0.05, 0.06, 0.09);
   vec3 color = mix(shadowColor, litColor, lit);
 
-  float alpha = density * uOpacity * mix(0.22, 0.62, lit) * layerAlphaScale;
+  float alpha = density * uOpacity * mix(0.22, 0.92, lit) * layerAlphaScale;
   gl_FragColor = vec4(color, alpha);
 }
 `;

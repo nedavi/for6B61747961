@@ -130,40 +130,33 @@ void main() {
   // exactly what reads as "synthetic Three.js demo" lighting.
   float dayMix = smoothstep(-0.28, 0.32, sunDot);
 
-  // Cinematic grade: a gentle S-curve around midtones reads as graded
-  // footage, where the old flat *0.9 multiply darkened shadows and
-  // highlights equally — exactly what read as "flat/synthetic" rather than
-  // a real photograph. A faint cool haze blends in toward the grazing limb
-  // (Ngeo, the UNPERTURBED geometric normal — this is a macro atmospheric-
-  // perspective cue and must not sparkle with the per-pixel fine-grain bump
-  // from perturbNormal above). Real orbital photography always shows a hint
-  // of that haze right at the edge of the disk; without it, terrain reads as
-  // a texture pasted on a sphere all the way to the limb.
+  // Exposure-style brightening (1 - exp(-x * k)) instead of a midpoint
+  // contrast curve — a contrast curve ((x-0.5)*k+0.5) actively pushes
+  // near-zero source values NEGATIVE for k>1, which is exactly what the raw
+  // NASA ocean pixels are (close to (0,0,0.05)): every later "brighten the
+  // shadows" step was fighting a starting point already below zero. This
+  // curve can't go negative and naturally rolls off toward 1 instead of
+  // clipping to a flat plate, so it lifts dark water without blowing out
+  // bright land.
+  vec3 exposedDay = vec3(1.0) - exp(-dayColor * 8.0);
+
+  // Push blue-dominant pixels (open ocean) further toward a vivid azure, and
+  // lift overall saturation so the result reads as vivid rather than washed
+  // out — masked additive push (not a mix-toward-a-flat-color) so brighter
+  // water keeps its own variation instead of flattening to one hue.
+  float blueDominance = max(dayColor.b - dayColor.r, 0.0);
+  exposedDay.b += blueDominance * 2.2;
+  exposedDay.g += blueDominance * 1.0;
+
+  float dayLuma = dot(exposedDay, vec3(0.299, 0.587, 0.114));
+  vec3 gradedDay = mix(vec3(dayLuma), exposedDay, 1.5);
+
+  // A faint cool haze toward the grazing limb (Ngeo, the UNPERTURBED
+  // geometric normal — a macro atmospheric-perspective cue, must not
+  // sparkle with the per-pixel fine-grain bump from perturbNormal above).
   float limbFresnel = pow(1.0 - max(dot(Ngeo, viewDir), 0.0), 2.4);
   vec3 hazeColor = vec3(0.55, 0.68, 0.82);
-  vec3 contrastDay = (dayColor - 0.5) * 1.16 + 0.5;
-  vec3 gradedDay = mix(contrastDay * 1.04, hazeColor, limbFresnel * 0.2);
-
-  // The raw NASA composite's open ocean is near-black navy, not the vivid
-  // turquoise a color-graded "Earth from space" shot has — a small additive
-  // hue nudge barely registers against near-zero source values, so this
-  // actually lifts brightness toward a set azure target color rather than
-  // just shifting hue. Two masks multiplied together: "blue channel clearly
-  // dominant" (water, not land/desert/cloud) and "source pixel is dark"
-  // (deep ocean, not an already-bright sunglint pixel or ice) — so bright
-  // water keeps its own detail instead of being flattened toward one color.
-  float waterMask = smoothstep(0.004, 0.028, dayColor.b - dayColor.r);
-  float oceanDarkness = 1.0 - smoothstep(0.0, 0.3, dayColor.b);
-  vec3 azure = vec3(0.05, 0.45, 0.65);
-  gradedDay = mix(gradedDay, azure, waterMask * oceanDarkness * 0.85);
-
-  // Overall saturation lift — the raw NASA composite reads noticeably
-  // flatter/greyer than a hand-graded source; boosting saturation around
-  // each pixel's own luma (rather than a flat channel multiply) keeps
-  // whites/greys neutral while making blues and greens read as vivid rather
-  // than washed out.
-  float dayLuma = dot(gradedDay, vec3(0.299, 0.587, 0.114));
-  gradedDay = mix(vec3(dayLuma), gradedDay, 1.28);
+  gradedDay = mix(gradedDay, hazeColor, limbFresnel * 0.2);
 
   // Subtle city-light shimmer — NOT a synchronized pulse. Each pixel gets its
   // own slow phase from a spatial hash, so different clusters drift in and

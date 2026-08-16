@@ -37,7 +37,7 @@ export const CLOUD_DECKS: Record<'low' | 'high', CloudDeckConfig> = {
     segments: 56,
     driftRadiansPerSecond: -0.0009,
     initialRotation: 1.7,
-    layerAlphaScale: 0.55,
+    layerAlphaScale: 0.7,
     renderOrder: 2,
   },
 };
