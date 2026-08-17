@@ -12,7 +12,12 @@ import { DestinationSidebar } from './DestinationSidebar';
 
 // One viewport-height of scroll per journey stop, plus a little extra for the
 // reveal/settle bands — grows with journey.length rather than a fixed number.
-const VIEWPORT_HEIGHTS_PER_STOP = 1.3;
+// §K25: 1.3 → 1.8 — direct feedback that cities scroll past too quickly to
+// land precisely on one. Snap targets themselves are unchanged (they're
+// normalized progress fractions from timeline.ts, not tied to this constant)
+// — this just gives the same fractions more physical scroll distance to
+// cover, so a given scroll gesture moves through less of the journey at once.
+const VIEWPORT_HEIGHTS_PER_STOP = 1.8;
 
 // DOM half of the real Earth journey (ARCHITECTURE.md §6/§7/§G). Owns exactly
 // one ScrollTrigger, pinned, whose onUpdate is the single write point into
@@ -28,14 +33,15 @@ export function EarthJourneyScene() {
   const [showScrollHint, setShowScrollHint] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
   const timeline = useRef(buildTimeline(journey)).current;
-  // §K21: snap targets — waypoint arrival points only (`segment.end`), the
-  // same value CameraRig treats as "closest approach" and CityPostcard/
-  // DestinationSidebar treat as `arrivalAt`. §K17 re-added snap after §K15
-  // removed it; §K20 tried patching the opening leg by adding early snap
-  // targets, but that only widened the dead zone before the eventual jump —
-  // still not "смooth." The actual fix is below, in `snapTo`: the opening
-  // reveal→Beijing leg is excluded from snapping entirely now, not given
-  // more snap targets to land on.
+  // §K25: snap targets — waypoint arrival points (`segment.end`), the same
+  // value CameraRig treats as "closest approach" and CityPostcard/
+  // DestinationSidebar treat as `arrivalAt`. §K21 excluded the reveal→Beijing
+  // leg from snapping entirely; direct instruction this pass reverses that —
+  // Beijing should magnetize scroll toward it same as every other waypoint,
+  // even from a partial/incomplete scroll. Combined with the widened
+  // VIEWPORT_HEIGHTS_PER_STOP above, so that pull doesn't feel as abrupt as
+  // it did back in §K19/K20 — more physical scroll distance per leg means
+  // more room to build up separation before release.
   const waypointArrivals = useRef(timeline.filter((segment) => segment.waypoint).map((segment) => segment.end)).current;
 
   // The scroll hint appears only once Earth's own auto-reveal has finished,
@@ -65,18 +71,13 @@ export function EarthJourneyScene() {
       // stopped, and a slower, eased `duration` range so the snap itself
       // reads as a smooth glide to the nearest city rather than a jump.
       //
-      // §K21: `snapTo` is a function, not the plain array §K17/§K20 used —
-      // direct feedback ("резкий рывок к Пекину", "нужно чтобы плавно") is
-      // that the reveal→Beijing leg specifically should never snap at all,
-      // only scrub continuously; snapping only makes sense from one
-      // waypoint's arrival to the next, where "throw me to the nearest
-      // city" (the original ask that brought snap back in §K17) actually
-      // applies. Below `waypointArrivals[0]` (Beijing's own arrival), this
-      // returns the value unchanged — a no-op snap — so that whole leg is
-      // pure 1:1 scroll with no artificial hold or jump; at or beyond it,
-      // ordinary nearest-neighbor snapping among waypoint arrivals resumes.
+      // §K25: plain nearest-neighbor snapping across every waypoint arrival,
+      // including Beijing — §K21's exclusion of the opening leg is reverted
+      // per direct instruction ("даже если не до конца докрутил... тебя
+      // магнитило на пекин точку"). The wider VIEWPORT_HEIGHTS_PER_STOP above
+      // is what's meant to keep this from feeling abrupt this time, not
+      // excluding the leg from snap.
       const snapTo = (value: number) => {
-        if (value < waypointArrivals[0]) return value;
         let nearest = waypointArrivals[0];
         let minDist = Math.abs(value - nearest);
         for (const point of waypointArrivals) {

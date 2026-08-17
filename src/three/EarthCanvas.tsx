@@ -109,7 +109,14 @@ export function EarthCanvas({ revealed, onRevealed }: EarthCanvasProps) {
   return (
     <Canvas
       dpr={[1, Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, 2)]}
-      camera={{ position: [0, 0, EARTH_REVEAL_CAMERA.distance], fov: EARTH_REVEAL_CAMERA.fov ?? 45, near: 0.1, far: 100 }}
+      // §K25: near raised 0.1 → 0.5 — nothing ever renders closer than ~0.9
+      // units from the camera (Rhodes' tightest framing, distance 1.9, minus
+      // Earth's own radius 1), so 0.1 was wasting most of the depth buffer's
+      // precision on a range that's never used. A 1:1000 near/far ratio is a
+      // well-known z-fighting risk; 0.5 cuts that to 1:200 with a safe margin
+      // below the true minimum, which is the other half of this pass's flicker fix
+      // (paired with AtmosphereGlow.tsx's widened radius).
+      camera={{ position: [0, 0, EARTH_REVEAL_CAMERA.distance], fov: EARTH_REVEAL_CAMERA.fov ?? 45, near: 0.5, far: 100 }}
       gl={{ antialias: true, alpha: true, toneMapping: NoToneMapping, outputColorSpace: SRGBColorSpace }}
     >
       <ambientLight intensity={0.05} />

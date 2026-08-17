@@ -9,10 +9,15 @@ import { SUN_DIRECTION } from './sunDirection';
 // sphere to only 1.0142x its Earth sphere's radius (98.10 vs 96.72 in its
 // own node transforms). Ours had been 6-9% larger this whole time, which on
 // its own was enough to read as a bloated shell rather than a thin one,
-// regardless of any shader tuning. Kept slightly above the reference's exact
-// ratio for depth-buffer safety margin at this project's camera distances,
-// not because the reference number was in doubt.
-const ATMOSPHERE_RADIUS = 1.03;
+// regardless of any shader tuning.
+// §K25: widened again, 1.03 → 1.045 — 1.03 left too little depth-buffer
+// margin between this shell and Earth's own surface, which read as a visible
+// flicker (Earth appearing/disappearing) as the camera moved — classic
+// z-fighting from two near-coincident surfaces at this project's wide
+// near/far camera range (see EarthCanvas.tsx's `near` bump, same root cause).
+// Still far thinner than the pre-§K18 6-9% range, just not quite as tight as
+// the reference's own exact ratio.
+const ATMOSPHERE_RADIUS = 1.045;
 const ATMOSPHERE_SEGMENTS = 64;
 
 // §K18: matched to the reference GLB's actual atmosphere material —

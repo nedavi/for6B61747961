@@ -547,6 +547,15 @@ Direct instruction, two unrelated asks in one message: make the sun-glint spot b
 
 Direct instruction: minimum 4-5 landmarks per waypoint (most had 3, El Nido had 2). Sourced 19 new real Wikimedia Commons photos (2 per city, 3 for El Nido) via a background agent following the established Special:FilePath thumbnail pipeline, appended to each waypoint's `landmarks` array in `journey.ts`. Spot-checked a sample directly plus the agent's own self-reported catches (it swapped out several bad initial picks — group photos, mismatched buildings, unusable panoramas — after visually reviewing its own downloads). One weak result (a hazy, cluttered Burj Al Arab street shot) was caught in review and replaced with a clean beach-view shot of the same landmark. `sharp` installed/uninstalled cleanly both times, no trace in `package.json`. Build verified clean.
 
+## K25. Flicker fix (depth-buffer margin), snap reversal, more scroll room (this pass)
+
+Direct report: Earth flickering (appearing/disappearing), Beijing's transition not smooth, and cities scrolling past too fast to land on one precisely.
+
+- **Flicker root cause: §K18's atmosphere radius (1.03) and the camera's `near: 0.1` together left too little depth-buffer margin**, a classic z-fighting setup — two near-coincident surfaces (Earth's own radius 1, atmosphere shell at 1.03) rendered with a 1:1000 near/far ratio that concentrates almost all depth precision on a near-camera range (0.1–0.9) nothing ever actually uses. `AtmosphereGlow.tsx`: radius `1.03 → 1.045`. `EarthCanvas.tsx`: `near: 0.1 → 0.5` (still safely below the true minimum render distance, ~0.9 at Rhodes' tightest framing) — cuts the ratio to 1:200.
+- **Snap reverted to plain nearest-neighbor across every waypoint including Beijing** — §K21's exclusion of the opening leg from snapping is undone per direct instruction ("even on a partial scroll, magnetize to Beijing"). `EarthJourneyScene.tsx`'s `snapTo` no longer special-cases anything below the first arrival.
+- **`VIEWPORT_HEIGHTS_PER_STOP: 1.3 → 1.8`** — more physical scroll distance per waypoint, meant to keep the reinstated snap from feeling abrupt and make it easier to land on one specific city.
+- Build verified clean. Still not independently verified in a browser.
+
 ## 7. GSAP / ScrollTrigger Architecture (implemented for what exists)
 
 - `gsap/registerGsap.ts` registers `ScrollTrigger` and `@gsap/react`'s `useGSAP` once, at app entry.
