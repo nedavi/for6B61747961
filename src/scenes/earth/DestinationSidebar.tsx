@@ -68,14 +68,30 @@ export function DestinationSidebar({ info, arrivalAt, segmentWidth, label, side 
   const prefersReducedMotion = usePrefersReducedMotion();
   const { fadeIn, hold, fadeOut } = useMemo(() => computeEnvelope(segmentWidth), [segmentWidth]);
 
+  // §K28: found while chasing the flicker report — this ran unthrottled at
+  // 60fps, and since EarthJourneyScene mounts one DestinationSidebar PER
+  // waypoint (up to 9 simultaneously, all the time, not just the near one),
+  // that was 9 independent rAF loops doing string allocation (`String(t)`,
+  // the transform template literal) and unconditional DOM writes every
+  // single frame — for the ~8 sidebars sitting at t=0 at any given moment,
+  // every one of those writes was redundant. Now throttled to the same
+  // ~12Hz WaypointMarker already uses, and skips the DOM write entirely
+  // when the value hasn't meaningfully changed since the last write (true
+  // for the vast majority of frames, for the vast majority of sidebars).
   useEffect(() => {
+    let frameCounter = 0;
+    let lastWrittenT = -1;
     const tick = () => {
-      const el = panelRef.current;
-      if (el) {
+      frameCounter += 1;
+      if (frameCounter % 5 === 0) {
+        const el = panelRef.current;
         const t = proximity(progressStore.progress, arrivalAt, fadeIn, hold, fadeOut);
-        el.style.opacity = String(t);
-        el.style.transform = prefersReducedMotion ? 'none' : `translateY(${(1 - t) * 10}px)`;
-        el.setAttribute('aria-hidden', t > 0.5 ? 'false' : 'true');
+        if (el && Math.abs(t - lastWrittenT) > 0.001) {
+          lastWrittenT = t;
+          el.style.opacity = String(t);
+          el.style.transform = prefersReducedMotion ? 'none' : `translateY(${(1 - t) * 10}px)`;
+          el.setAttribute('aria-hidden', t > 0.5 ? 'false' : 'true');
+        }
       }
       rafRef.current = requestAnimationFrame(tick);
     };
