@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useRef, type RefObject } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { gsap } from 'gsap';
 import { NoToneMapping, SRGBColorSpace, type DirectionalLight, type Group, type Mesh, type ShaderMaterial } from 'three';
@@ -20,6 +20,49 @@ import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 // inline in EarthCanvas's body) because useFrame only works inside the
 // <Canvas> render tree, and EarthCanvas itself renders <Canvas>, it isn't
 // inside one.
+// §K30: the actual missing piece behind the persistent "flickers, then goes
+// permanently black over time" report. WebGL contexts can be lost for many
+// ordinary reasons (GPU driver stall, memory pressure, thermal throttling) —
+// that alone isn't unusual. What made it PERMANENT here is that nothing in
+// this codebase ever listened for `webglcontextlost`, and the browser's
+// default behavior when nothing calls `event.preventDefault()` on that event
+// is to treat the context as unrecoverable — it never fires
+// `webglcontextrestored` at all, so the canvas stays black until the page is
+// manually reloaded. This explains the whole shape of the report at once:
+// worse the longer/heavier the session (more chances for a transient loss to
+// occur), worse on a bigger/more demanding screen (more GPU pressure raises
+// that chance further), and — critically — permanent once it happens, which
+// none of §K25–K29's fixes could have addressed, since they only reduced how
+// OFTEN something might trigger a loss, not what happens once one occurs.
+function ContextLossHandler() {
+  const { gl, invalidate } = useThree();
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const handleLost = (event: Event) => {
+      // The one call that actually matters: without this, the browser
+      // assumes the page can't handle context loss and never attempts to
+      // restore it — the canvas would otherwise stay black permanently.
+      event.preventDefault();
+    };
+    const handleRestored = () => {
+      // three.js's WebGLRenderer re-uploads textures/programs on its own
+      // once the context is restored; this just forces R3F to render a
+      // fresh frame immediately afterward rather than waiting for the next
+      // scroll-driven update.
+      invalidate();
+    };
+    canvas.addEventListener('webglcontextlost', handleLost, false);
+    canvas.addEventListener('webglcontextrestored', handleRestored, false);
+    return () => {
+      canvas.removeEventListener('webglcontextlost', handleLost);
+      canvas.removeEventListener('webglcontextrestored', handleRestored);
+    };
+  }, [gl, invalidate]);
+
+  return null;
+}
+
 function SunController({ lightRef }: { lightRef: RefObject<DirectionalLight | null> }) {
   const prefersReducedMotion = usePrefersReducedMotion();
 
@@ -134,6 +177,7 @@ export function EarthCanvas({ revealed, onRevealed }: EarthCanvasProps) {
       camera={{ position: [0, 0, EARTH_REVEAL_CAMERA.distance], fov: EARTH_REVEAL_CAMERA.fov ?? 45, near: 0.5, far: 100 }}
       gl={{ antialias: true, alpha: true, toneMapping: NoToneMapping, outputColorSpace: SRGBColorSpace }}
     >
+      <ContextLossHandler />
       <ambientLight intensity={0.05} />
       <directionalLight ref={directionalLightRef} position={sunLightPosition} intensity={1.2} />
       <SunController lightRef={directionalLightRef} />
