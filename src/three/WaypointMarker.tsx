@@ -30,11 +30,18 @@ function smoothstep(t: number): number {
 // segments, so two markers could be visible/fading at once. Scaling by the
 // waypoint's own segment width keeps the envelope inside its own segment
 // regardless of how many waypoints exist or how their durationWeights compare.
+// §K22: fractions cut hard again (0.22/0.4/0.2 → 0.05/0.08/0.04) — direct
+// instruction that the marker/label should read as tied to the camera having
+// actually settled on this waypoint, not visible across most of the segment
+// surrounding it. The old fractions summed to 0.82 of the segment's own
+// width (visible almost the entire time this waypoint was "current"); the
+// new ones sum to 0.17 — a short approach fade-in, a brief hold right at
+// arrival, and a fast fade-out the moment departure begins.
 function envelopeDurations(segmentWidth: number) {
   return {
-    fadeIn: segmentWidth * 0.22,
-    hold: segmentWidth * 0.4,
-    fadeOut: segmentWidth * 0.2,
+    fadeIn: segmentWidth * 0.05,
+    hold: segmentWidth * 0.08,
+    fadeOut: segmentWidth * 0.04,
   };
 }
 

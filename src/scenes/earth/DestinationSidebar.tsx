@@ -16,11 +16,17 @@ function smoothstep(t: number): number {
 // into the next waypoint's territory was exactly this. Scaling by the
 // waypoint's own segment width keeps the envelope inside its own segment
 // regardless of how many waypoints exist or how their durationWeights compare.
+// §K22: cut hard again (0.22/0.44/0.2 → 0.05/0.08/0.04), same reasoning and
+// same new fractions as WaypointMarker.tsx's `envelopeDurations` — direct
+// instruction that the sidebar should appear only once the camera has
+// settled on this waypoint and disappear as soon as it's left, not stay
+// visible across most of the segment. Kept identical to the marker's
+// envelope on purpose so both appear/disappear together.
 function computeEnvelope(segmentWidth: number) {
   return {
-    fadeIn: segmentWidth * 0.22,
-    hold: segmentWidth * 0.44,
-    fadeOut: segmentWidth * 0.2,
+    fadeIn: segmentWidth * 0.05,
+    hold: segmentWidth * 0.08,
+    fadeOut: segmentWidth * 0.04,
   };
 }
 
