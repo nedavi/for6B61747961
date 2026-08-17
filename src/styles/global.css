@@ -50,6 +50,22 @@ ol {
 
 html {
   color-scheme: dark;
+  /* §K26: fixes a real, confirmed-plausible cause of "Earth flickers to a
+     black square while scrolling." `.persistent-visual-layer` (the WebGL
+     canvas's container) is `position: fixed; inset: 0` — sized directly from
+     the viewport. `EarthJourneyScene`'s GSAP ScrollTrigger uses `pin: true`,
+     which inserts/removes a pin-spacer element into document flow as it
+     engages — this can toggle whether the page needs a vertical scrollbar at
+     all, which changes `window.innerWidth`, which resizes the fixed-position
+     canvas, which makes React Three Fiber reallocate the renderer AND the
+     Bloom post-processing effect's render targets. That reallocation
+     producing a visible black frame mid-scroll is a well-documented R3F/
+     postprocessing gotcha — reserving the scrollbar's gutter permanently
+     means the viewport width can never change for this reason again, for the
+     entire session, not just during the Earth scene. `overflow-y: scroll` is
+     the fallback for browsers without `scrollbar-gutter` support. */
+  scrollbar-gutter: stable;
+  overflow-y: scroll;
 }
 
 body {

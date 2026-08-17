@@ -36,13 +36,20 @@ export function EarthJourneyScene() {
   // §K25: snap targets — waypoint arrival points (`segment.end`), the same
   // value CameraRig treats as "closest approach" and CityPostcard/
   // DestinationSidebar treat as `arrivalAt`. §K21 excluded the reveal→Beijing
-  // leg from snapping entirely; direct instruction this pass reverses that —
+  // leg from snapping entirely; direct instruction that pass reversed it —
   // Beijing should magnetize scroll toward it same as every other waypoint,
-  // even from a partial/incomplete scroll. Combined with the widened
-  // VIEWPORT_HEIGHTS_PER_STOP above, so that pull doesn't feel as abrupt as
-  // it did back in §K19/K20 — more physical scroll distance per leg means
-  // more room to build up separation before release.
-  const waypointArrivals = useRef(timeline.filter((segment) => segment.waypoint).map((segment) => segment.end)).current;
+  // even from a partial/incomplete scroll.
+  // §K26: `0` prepended back in as its own snap target — without it, EVERY
+  // scroll past the midpoint to Beijing's arrival (roughly 12% of the way
+  // there) committed the rest of the way, leaving no room to just glance
+  // around near the start before deciding to actually go. Direct feedback
+  // ("почему меня сразу на Пекин то бросает, если камера должна на планету
+  // смотреть") — a light/tentative scroll now settles back to the starting
+  // "just Earth" view (CameraRig's single progress-0 keyframe, unchanged
+  // since §K21), while scrolling with clear intent past that point still
+  // magnetizes forward, same as §K25 asked for.
+  const snapCandidates = useRef([0, ...timeline.filter((segment) => segment.waypoint).map((segment) => segment.end)])
+    .current;
 
   // The scroll hint appears only once Earth's own auto-reveal has finished,
   // and only after 2s of no scroll input — direct feedback that the previous
@@ -71,16 +78,13 @@ export function EarthJourneyScene() {
       // stopped, and a slower, eased `duration` range so the snap itself
       // reads as a smooth glide to the nearest city rather than a jump.
       //
-      // §K25: plain nearest-neighbor snapping across every waypoint arrival,
-      // including Beijing — §K21's exclusion of the opening leg is reverted
-      // per direct instruction ("даже если не до конца докрутил... тебя
-      // магнитило на пекин точку"). The wider VIEWPORT_HEIGHTS_PER_STOP above
-      // is what's meant to keep this from feeling abrupt this time, not
-      // excluding the leg from snap.
+      // §K26: plain nearest-neighbor snapping across `snapCandidates`
+      // (0 plus every waypoint arrival, including Beijing's) — see that
+      // constant's own comment for why 0 is back in the list.
       const snapTo = (value: number) => {
-        let nearest = waypointArrivals[0];
+        let nearest = snapCandidates[0];
         let minDist = Math.abs(value - nearest);
-        for (const point of waypointArrivals) {
+        for (const point of snapCandidates) {
           const dist = Math.abs(value - point);
           if (dist < minDist) {
             minDist = dist;
