@@ -175,7 +175,22 @@ export function EarthCanvas({ revealed, onRevealed }: EarthCanvasProps) {
       // below the true minimum, which is the other half of this pass's flicker fix
       // (paired with AtmosphereGlow.tsx's widened radius).
       camera={{ position: [0, 0, EARTH_REVEAL_CAMERA.distance], fov: EARTH_REVEAL_CAMERA.fov ?? 45, near: 0.5, far: 100 }}
-      gl={{ antialias: true, alpha: true, toneMapping: NoToneMapping, outputColorSpace: SRGBColorSpace }}
+      // §K31: `preserveDrawingBuffer: true` added — direct report that the
+      // black flash repeats ("мигает"), not a one-time permanent event,
+      // which points at the browser's compositor rather than a single
+      // context-loss incident. WebGL canvases don't keep their drawing
+      // buffer between frames by default; if the browser needs to composite
+      // a frame while the main thread is still busy (GSAP/ScrollTrigger's
+      // own scroll-handling work) and hasn't reached this frame's draw calls
+      // yet, it can composite whatever the buffer currently holds — which,
+      // without this flag, can be a cleared/blank frame, seen as exactly
+      // "Earth disappears, a black square covers it." With this on, the
+      // last successfully rendered frame stays in the buffer and gets
+      // reused instead, so a slow frame reads as a brief stall at worst, not
+      // a black flash. Real cost: disables a GPU double-buffering
+      // optimization, meaningful for competitive/twitch-timing renderers,
+      // not for a scroll-driven scene like this one.
+      gl={{ antialias: true, alpha: true, toneMapping: NoToneMapping, outputColorSpace: SRGBColorSpace, preserveDrawingBuffer: true }}
     >
       <ContextLossHandler />
       <ambientLight intensity={0.05} />

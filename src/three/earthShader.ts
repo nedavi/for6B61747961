@@ -203,18 +203,26 @@ void main() {
   // that wasn't enough — a real screenshot still showed a large blown-out
   // white disc, not a glint, so both remaining lobes are tightened hard:
   // narrower exponents (110→170, 18→30) and roughly halved intensity.
-  // §K23: pushed the other way again, but narrower AND brighter this time,
-  // not wider — direct request for a "mirror-like" glint plus a bloom
-  // reaction there. Core exponent tightened further (170→210, an even
-  // smaller/sharper point) while its intensity is raised (0.5→0.68); paired
-  // with the fine-bump water-masking above, this should read as a tight,
-  // glassy highlight that Bloom (EarthCanvas.tsx, also raised this pass)
-  // catches, rather than a wider soft patch like §K13 was correcting.
+  // §K23 pushed this narrower AND brighter (170→210 exponent, 0.5→0.68
+  // intensity) for a "mirror-like" glint with a real Bloom reaction. §K31:
+  // reversed — direct report of "sparkling/flickering only while scrolling,
+  // fine when static" is the signature of a well-known real-time-graphics
+  // artifact ("fireflies"): a highlight this narrow can occupy only a
+  // handful of pixels, so as the camera moves every frame during scroll, it
+  // can fall between pixel centers and inconsistently trigger Bloom's
+  // luminance threshold frame to frame — appearing to pop/sparkle — while
+  // sitting under it, or over it, consistently (no flicker) when the camera
+  // is still. A tighter, brighter highlight is *more* prone to this, not
+  // less, so §K23's specific direction was very likely the actual cause of
+  // this report. Widened back past even §K13's 170 (210→130) and intensity
+  // cut (0.68→0.45) — genuinely trades away some of the "mirror" sharpness,
+  // but a highlight with more spatial extent is much less likely to
+  // disappear between adjacent pixels as the camera sweeps across it.
   vec3 halfVector = normalize(viewDir + normalize(sunDirection));
   float ndh = max(dot(N, halfVector), 0.0);
-  float specCore = pow(ndh, 210.0);
+  float specCore = pow(ndh, 130.0);
   float specSheen = pow(ndh, 30.0);
-  color += vec3(1.0, 0.93, 0.78) * specCore * specMask * dayMix * 0.68;
+  color += vec3(1.0, 0.93, 0.78) * specCore * specMask * dayMix * 0.45;
   color += vec3(1.0, 0.9, 0.72) * specSheen * specMask * dayMix * 0.09;
 
   // Faint cool fill so the unlit side reads as dark blue-black rather than
