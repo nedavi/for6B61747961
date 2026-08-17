@@ -78,7 +78,7 @@ float valueNoise(vec2 p) {
 // a continental scale — up close that reads as a lit photograph glued to a
 // sphere rather than something with real surface texture; the fine layer is
 // what breaks that "printed map" flatness without needing a second asset.
-vec3 perturbNormal(vec3 N, vec3 V, vec2 uv) {
+vec3 perturbNormal(vec3 N, vec3 V, vec2 uv, float specMask) {
   vec3 mapN = texture2D(normalMap, uv).xyz * 2.0 - 1.0;
 
   vec2 fineUv = uv * 900.0;
@@ -86,13 +86,13 @@ vec3 perturbNormal(vec3 N, vec3 V, vec2 uv) {
   float h0 = valueNoise(fineUv);
   float hX = valueNoise(fineUv + vec2(e, 0.0));
   float hY = valueNoise(fineUv + vec2(0.0, e));
-  // Cut hard, 0.5 → 0.15 (§K12) — this per-pixel noise feeds directly into
-  // the specular half-vector below, and at 0.5 it was visibly "sandpaper"
-  // rather than smooth under direct light ("шершавая, не гладкая как
-  // стекло" — direct feedback). The day map already carries real baked
-  // relief (§K10); this layer only needs to be a whisper of grain, not
-  // something the specular highlight can see the texture of.
-  vec2 fineTilt = vec2(h0 - hX, h0 - hY) * 0.15;
+  // §K23: the fine bump is now masked by specMask — heavily suppressed over
+  // water (specMask ≈ 1) so its normal stays close to flat there, sharpening
+  // the specular reflection into a proper "mirror" glint rather than one
+  // scattered by per-pixel grain; land (specMask ≈ 0) keeps the same 0.15
+  // strength as §K12 set it to. Direct request: water should read as a
+  // smooth, glossy surface, not textured like land.
+  vec2 fineTilt = vec2(h0 - hX, h0 - hY) * 0.15 * (1.0 - specMask * 0.85);
   vec3 combinedN = normalize(vec3(mapN.xy + fineTilt, mapN.z));
 
   vec3 q0 = dFdx(V);
@@ -112,12 +112,14 @@ vec3 perturbNormal(vec3 N, vec3 V, vec2 uv) {
 
 void main() {
   vec3 Ngeo = normalize(vNormalW);
-  vec3 N = perturbNormal(vNormalW, vViewPos, vUv);
+  // specMask sampled before perturbNormal now (§K23) — it needs it to mask
+  // the fine bump over water; see perturbNormal's own comment above.
+  float specMask = texture2D(specularMap, vUv).r;
+  vec3 N = perturbNormal(vNormalW, vViewPos, vUv, specMask);
   vec3 viewDir = normalize(cameraPosition - vWorldPos);
 
   vec3 dayColor = texture2D(dayMap, vUv).rgb;
   vec3 nightColor = texture2D(nightMap, vUv).rgb;
-  float specMask = texture2D(specularMap, vUv).r;
 
   // Regional detail insert — no branching needed: localUv lands outside
   // 0..1 when vUv is outside the crop window, which makes edgeDist negative,
@@ -201,12 +203,19 @@ void main() {
   // that wasn't enough — a real screenshot still showed a large blown-out
   // white disc, not a glint, so both remaining lobes are tightened hard:
   // narrower exponents (110→170, 18→30) and roughly halved intensity.
+  // §K23: pushed the other way again, but narrower AND brighter this time,
+  // not wider — direct request for a "mirror-like" glint plus a bloom
+  // reaction there. Core exponent tightened further (170→210, an even
+  // smaller/sharper point) while its intensity is raised (0.5→0.68); paired
+  // with the fine-bump water-masking above, this should read as a tight,
+  // glassy highlight that Bloom (EarthCanvas.tsx, also raised this pass)
+  // catches, rather than a wider soft patch like §K13 was correcting.
   vec3 halfVector = normalize(viewDir + normalize(sunDirection));
   float ndh = max(dot(N, halfVector), 0.0);
-  float specCore = pow(ndh, 170.0);
+  float specCore = pow(ndh, 210.0);
   float specSheen = pow(ndh, 30.0);
-  color += vec3(1.0, 0.93, 0.78) * specCore * specMask * dayMix * 0.5;
-  color += vec3(1.0, 0.9, 0.72) * specSheen * specMask * dayMix * 0.07;
+  color += vec3(1.0, 0.93, 0.78) * specCore * specMask * dayMix * 0.68;
+  color += vec3(1.0, 0.9, 0.72) * specSheen * specMask * dayMix * 0.09;
 
   // Faint cool fill so the unlit side reads as dark blue-black rather than
   // pure crushed black.

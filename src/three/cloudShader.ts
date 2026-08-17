@@ -27,11 +27,17 @@ varying vec2 vUv;
 varying vec3 vNormalW;
 
 void main() {
-  // Raised discard threshold thins overall coverage to broken wisps rather
-  // than a near-continuous blanket — "smaller/lighter clouds" per direct
-  // feedback, without needing a different density texture.
+  // §K23: raised again, 0.14 → 0.32 — direct feedback that coverage still
+  // read as too much even after the first thinning pass. This discards the
+  // texture's broad mid-gray haze entirely and keeps only its denser, more
+  // clearly-defined cloud masses — real satellite data, just a smaller
+  // fraction of it rendered, which is what actually controls "how many
+  // clouds" rather than the texture's own resolution (bumped separately,
+  // see CloudLayer.tsx/journey.md, but resolution and coverage are unrelated
+  // levers — one is sharpness, the other is how much of the map counts as
+  // "cloud" at all).
   float density = texture2D(cloudMap, vUv).r;
-  if (density < 0.14) discard;
+  if (density < 0.32) discard;
 
   float sunDot = dot(normalize(vNormalW), normalize(sunDirection));
   float lit = smoothstep(-0.3, 0.35, sunDot);

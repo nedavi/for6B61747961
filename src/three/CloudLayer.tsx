@@ -34,11 +34,16 @@ interface CloudDeckConfig {
 // dynamics requested) — direct feedback that clouds read as too
 // large/opaque/static, twice over. The two decks still drift at different
 // (and opposite) rates so they visibly diverge rather than moving as one slab.
+// §K23: segments raised again (72→96, 56→80) — direct request for "more
+// polygons." The cloud texture's own detail (re-sourced at true 8K this
+// pass, see cloudShader.ts/journey.md) is what mainly reads as quality up
+// close, since geometry only affects the sphere's own silhouette smoothness,
+// but a cheap change worth making regardless while touching this file.
 export const CLOUD_DECKS: Record<'low' | 'high', CloudDeckConfig> = {
-  low: { radius: 1.006, segments: 72, driftRadiansPerSecond: 0.02, initialRotation: 0, layerAlphaScale: 0.62, renderOrder: 1 },
+  low: { radius: 1.006, segments: 96, driftRadiansPerSecond: 0.02, initialRotation: 0, layerAlphaScale: 0.62, renderOrder: 1 },
   high: {
     radius: 1.014,
-    segments: 56,
+    segments: 80,
     driftRadiansPerSecond: -0.012,
     initialRotation: 1.7,
     layerAlphaScale: 0.4,

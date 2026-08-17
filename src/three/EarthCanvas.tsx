@@ -135,13 +135,18 @@ export function EarthCanvas({ revealed, onRevealed }: EarthCanvasProps) {
           white disc instead of a glint — `mipmapBlur` is dropped entirely
           (it's designed for a big, soft UE4-style spread, which is exactly
           the wrong shape here) in favor of the default, more contained
-          kernel blur, threshold raised again (0.82→0.92, very selective now),
-          and intensity cut hard (0.45→0.18). Does not require HDR/tone-
-          mapping — it operates on luminance directly, so it's independent of
-          the NoToneMapping choice above (kept for the shader's own color
-          math, see §6). */}
+          kernel blur. §K23: intensity raised again (0.18→0.32) alongside
+          earthShader.ts's specular becoming both tighter (higher exponent)
+          and brighter — a bigger bloom reaction on a *smaller* source point
+          should read as "this specific spot glows" rather than the wide
+          blown-out patch §K13 was fixing, but threshold is deliberately left
+          at 0.92 rather than also lowered, so nothing beyond that already-
+          narrow specular core and genuine highlights (ice, cloud edges)
+          starts blooming. Does not require HDR/tone-mapping — it operates on
+          luminance directly, independent of the NoToneMapping choice above
+          (kept for the shader's own color math, see §6). */}
       <EffectComposer>
-        <Bloom luminanceThreshold={0.92} luminanceSmoothing={0.15} intensity={0.18} />
+        <Bloom luminanceThreshold={0.92} luminanceSmoothing={0.15} intensity={0.32} />
       </EffectComposer>
     </Canvas>
   );
