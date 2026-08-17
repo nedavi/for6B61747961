@@ -543,6 +543,10 @@ Direct instruction, two unrelated asks in one message: make the sun-glint spot b
 - Temporary `sharp` install for the texture re-encode was uninstalled again immediately after use; `git status`/`git diff package.json` confirm no trace left in `package.json`/`package-lock.json`.
 - Build verified clean (`tsc -b && vite build`). Still not independently verified in a browser (same standing limitation, every pass) — this is the fourth specular/bloom round specifically (§K11, K12, K13, this one); unlike the earlier ones, this pass's core idea (mask the fine bump by the specular map, so "smooth" and "sharp glint" only apply where reflection actually happens) is a different mechanism than any previous round tried, not just different numbers on the same knobs.
 
+## K24. 5 landmark photos per city (this pass)
+
+Direct instruction: minimum 4-5 landmarks per waypoint (most had 3, El Nido had 2). Sourced 19 new real Wikimedia Commons photos (2 per city, 3 for El Nido) via a background agent following the established Special:FilePath thumbnail pipeline, appended to each waypoint's `landmarks` array in `journey.ts`. Spot-checked a sample directly plus the agent's own self-reported catches (it swapped out several bad initial picks — group photos, mismatched buildings, unusable panoramas — after visually reviewing its own downloads). One weak result (a hazy, cluttered Burj Al Arab street shot) was caught in review and replaced with a clean beach-view shot of the same landmark. `sharp` installed/uninstalled cleanly both times, no trace in `package.json`. Build verified clean.
+
 ## 7. GSAP / ScrollTrigger Architecture (implemented for what exists)
 
 - `gsap/registerGsap.ts` registers `ScrollTrigger` and `@gsap/react`'s `useGSAP` once, at app entry.
