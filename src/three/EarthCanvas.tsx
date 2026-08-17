@@ -50,6 +50,21 @@ const sunLightPosition: [number, number, number] = [
   SUN_DIRECTION.z * 10,
 ];
 
+// §K27: direct report that flicker/darkening happens on a large external
+// display but not a MacBook's own screen — `innerWidth × innerHeight` for a
+// big monitor can be several times a laptop's logical viewport even before
+// devicePixelRatio is applied, and Bloom's cost scales with total rendered
+// pixels. Capping the DPR ceiling lower specifically on large viewports keeps
+// the actual framebuffer (and therefore Bloom's cost) roughly bounded across
+// screen sizes, instead of letting it grow unbounded with both viewport size
+// AND pixel ratio at once. Computed once per mount, not tracked reactively —
+// this only needs to be right at initial size, not live-updated on resize.
+function getDprCap(): number {
+  if (typeof window === 'undefined') return 2;
+  const viewportArea = window.innerWidth * window.innerHeight;
+  return viewportArea > 2_600_000 ? 1.5 : 2;
+}
+
 export function EarthCanvas({ revealed, onRevealed }: EarthCanvasProps) {
   const earthGroupRef = useRef<Group>(null);
   const earthMeshRef = useRef<Mesh>(null);
@@ -108,7 +123,7 @@ export function EarthCanvas({ revealed, onRevealed }: EarthCanvasProps) {
 
   return (
     <Canvas
-      dpr={[1, Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, 2)]}
+      dpr={[1, Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, getDprCap())]}
       // §K25: near raised 0.1 → 0.5 — nothing ever renders closer than ~0.9
       // units from the camera (Rhodes' tightest framing, distance 1.9, minus
       // Earth's own radius 1), so 0.1 was wasting most of the depth buffer's

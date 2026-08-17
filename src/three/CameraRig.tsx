@@ -1,6 +1,6 @@
 import { useMemo, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { PerspectiveCamera, Quaternion, Vector3, type Group } from 'three';
+import { PerspectiveCamera, Quaternion, type Group } from 'three';
 import { EARTH_REVEAL_CAMERA, journey, type CameraPose } from '../data/journey';
 import { buildTimeline } from '../data/timeline';
 import { quaternionForLatLng } from './latLng';
@@ -109,9 +109,14 @@ export function CameraRig({ earthGroupRef }: CameraRigProps) {
     const rawT = span > 0 ? (progress - lower.progress) / span : 1;
     const t = prefersReducedMotion ? Math.min(1, Math.max(0, rawT)) : smoothstep(rawT);
 
-    // Geographic orientation — shortest-path spherical interpolation, never a snap.
-    const quaternion = new Quaternion().copy(lower.quaternion).slerp(upper.quaternion, t);
-    group.quaternion.copy(quaternion);
+    // Geographic orientation — shortest-path spherical interpolation, never a
+    // snap. §K27: slerps directly into `group.quaternion` instead of
+    // allocating a temporary Quaternion every frame — this ran unconditionally
+    // at 60fps with no throttle, so the old `new Quaternion()` here was a
+    // real, continuous allocation source. `.copy().slerp()` both mutate and
+    // return `this`, so `group.quaternion` itself can be both the target and
+    // the working scratch value.
+    group.quaternion.copy(lower.quaternion).slerp(upper.quaternion, t);
 
     // Cinematic framing — plain per-field lerp between the same two keyframes.
     // While still within the reveal→first-waypoint span, the lower bound's
@@ -166,8 +171,10 @@ export function CameraRig({ earthGroupRef }: CameraRigProps) {
     const yaw = lerp(lower.pose.lookAtOffset.x, upper.pose.lookAtOffset.x, t) * yawScale;
     const pitch = lerp(lower.pose.lookAtOffset.y, upper.pose.lookAtOffset.y, t) * pitchScale + (isMobile ? 0.1 : 0);
 
-    const rawPosition = new Vector3(offsetX, offsetY, 1).normalize().multiplyScalar(distance);
-    camera.position.copy(rawPosition);
+    // §K27: same fix as the quaternion above — sets/normalizes/scales
+    // `camera.position` directly instead of allocating a temporary Vector3
+    // every frame to then copy from.
+    camera.position.set(offsetX, offsetY, 1).normalize().multiplyScalar(distance);
     camera.lookAt(0, 0, 0);
     camera.rotateY(yaw);
     camera.rotateX(pitch);
