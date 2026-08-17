@@ -144,11 +144,14 @@ void main() {
   // curve can't go negative and naturally rolls off toward 1 instead of
   // clipping to a flat plate, so it lifts dark water without blowing out
   // bright land.
-  // Brought back down from 10.0 (§K12) — that value was tuned against the
-  // old, near-black flat day map (§K9); the current topo/bathymetry source
-  // (§K10) already carries real bathymetry color variation and doesn't
-  // start nearly as dark, so the same push was over-brightening it.
-  vec3 exposedDay = vec3(1.0) - exp(-dayColor * 7.0);
+  // Cut again, 7.0 → 4.5 (§K17) — direct feedback was that the whole lit
+  // side reads as washed-out/overexposed rather than a natural-brightness
+  // day side. 7.0 (already brought down once from 10.0 in §K12) was still
+  // pushing nearly every mid-brightness land/water pixel close to 1.0; 4.5
+  // keeps the same "can't go negative, rolls off instead of clipping"
+  // exposure-curve shape but leaves real midtone variation intact instead of
+  // flattening most of the lit hemisphere toward white.
+  vec3 exposedDay = vec3(1.0) - exp(-dayColor * 4.5);
 
   // Push blue-dominant pixels (open ocean) toward a slightly more vivid
   // azure — additive push cut hard (2.6→0.7 / 1.3→0.25, §K12), since at the

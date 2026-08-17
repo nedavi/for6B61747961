@@ -23,23 +23,28 @@ varying vec3 vNormalV;
 varying vec3 vNormalW;
 
 void main() {
-  // §K16: pushed hard, not incrementally, after two previous rounds of
-  // "still not bright/visible enough" (§K11, §K13) against a specific
-  // reference target. Falloff widened further (3.4→2.2 — a genuinely broad
-  // glow band, not a thin edge), lit-side ceiling nearly doubled (1.75→3.2),
-  // and the dark-side floor raised too (0.18→0.28) so the rim reads as
-  // present most of the way around, not only on the sunlit limb.
+  // §K17: reversed direction from §K16. Direct feedback after that pass was
+  // that the glow was washing across most of the visible disc rather than
+  // hugging the limb — the real culprit was the falloff exponent, not the
+  // intensity numbers alone: at 2.2, "rim" is already well above zero
+  // across a large fraction of the sphere's face, not just near the grazing
+  // edge, so a bright chunk of the "atmosphere" was really sitting on top of
+  // ordinary Earth surface. Narrowed back (2.2→3.0, tighter than even §K13's
+  // 3.4→2.2 starting point was aiming to loosen) so the glow reads as a rim,
+  // not a haze over the disc.
   float grazing = clamp(1.0 - abs(dot(vNormalV, vec3(0.0, 0.0, 1.0))), 0.0, 1.0);
-  float rim = pow(grazing, 2.2);
+  float rim = pow(grazing, 3.0);
 
+  // Ceiling cut hard (3.2→1.6) and floor cut even harder (0.28→0.1) — the
+  // floor specifically, since it applies regardless of sun angle: at 0.28
+  // the rim was glowing almost as brightly on the UNLIT side as the lit one,
+  // which fights directly against "dark side should be dark."
   float sunFactor = smoothstep(-0.3, 0.5, dot(normalize(vNormalW), normalize(sunDirection)));
-  float intensity = rim * mix(0.28, 3.2, sunFactor);
+  float intensity = rim * mix(0.1, 1.6, sunFactor);
 
-  // Mixed further toward bright white (0.2→0.35) — a glowing, slightly
-  // hazy white-cyan rim rather than a saturated flat blue line, closer to
-  // the reference's stylized "Earth from space" look than a literal
-  // scattering simulation.
-  vec3 color = mix(glowColor, vec3(0.96, 0.98, 1.0), 0.35);
+  // Pulled back toward the base blue (0.35→0.25) — less flat-white wash,
+  // more a thin colored rim.
+  vec3 color = mix(glowColor, vec3(0.96, 0.98, 1.0), 0.25);
 
   gl_FragColor = vec4(color, intensity * uOpacity);
 }

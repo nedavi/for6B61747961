@@ -3,12 +3,11 @@ import { AdditiveBlending, BackSide, Color, ShaderMaterial } from 'three';
 import { atmosphereFragmentShader, atmosphereVertexShader } from './atmosphereShader';
 import { SUN_DIRECTION } from './sunDirection';
 
-// Pushed again, 1.05 → 1.09 (§K16) — still short of the original 1.12 that
-// read as a flat cyan ring, but this time paired with a much stronger
-// intensity/falloff push in atmosphereShader.ts rather than another timid
-// nudge, after two rounds of "still not bright enough" against a specific
-// reference target.
-const ATMOSPHERE_RADIUS = 1.09;
+// Pulled back in, 1.09 → 1.06 (§K17) — §K16's push made the glow read as
+// lighting up the whole disc rather than a thin limb; paired with the
+// tighter falloff exponent in atmosphereShader.ts, a smaller radius keeps
+// the glow shell close against the surface instead of a wide halo.
+const ATMOSPHERE_RADIUS = 1.06;
 const ATMOSPHERE_SEGMENTS = 64;
 
 // --color-accent-atmosphere from DESIGN.md, dimmed/desaturated slightly in-shader

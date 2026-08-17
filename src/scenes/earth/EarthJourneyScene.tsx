@@ -28,6 +28,12 @@ export function EarthJourneyScene() {
   const [showScrollHint, setShowScrollHint] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
   const timeline = useRef(buildTimeline(journey)).current;
+  // §K17: snap targets — each waypoint's own arrival point (`segment.end`),
+  // the same value CameraRig treats as "closest approach" (three/CameraRig.tsx)
+  // and CityPostcard/DestinationSidebar treat as `arrivalAt`. Re-adding this
+  // after §K15 removed it entirely — see the ScrollTrigger config below for
+  // why this round is tuned not to repeat the earlier jerkiness.
+  const snapPoints = useRef(timeline.filter((segment) => segment.waypoint).map((segment) => segment.end)).current;
 
   // The scroll hint appears only once Earth's own auto-reveal has finished —
   // before that, scroll may already work (progress just starts at 0), but the
@@ -45,14 +51,14 @@ export function EarthJourneyScene() {
 
       const scrollLength = Math.max(2, journey.length) * VIEWPORT_HEIGHTS_PER_STOP * window.innerHeight;
 
-      // §K15: snap-to-waypoint removed entirely. It made sense with the
-      // original 3 widely-spaced waypoints (snapTo targets far enough apart
-      // that snapping helped land precisely on one); with 9 the targets sit
-      // close together, so GSAP's snap plugin was engaging after almost any
-      // brief scroll pause — even mid-gesture, e.g. between two ticks of an
-      // inertial trackpad scroll — and yanking progress to the nearest
-      // target. Direct feedback was that scrolling felt "jerky," which this
-      // is the likely cause of: continuous scroll now stays continuous.
+      // §K17: snap re-added, tuned differently than the version §K15 removed.
+      // That version's `delay: 0.12` was short enough to engage after almost
+      // any brief pause in an actively-in-progress scroll gesture — inertial
+      // trackpad scrolling pauses between "flicks" constantly — yanking
+      // progress mid-gesture, which is what read as "jerky." This version:
+      // a longer `delay` so it only engages once scrolling has genuinely
+      // stopped, and a slower, eased `duration` range so the snap itself
+      // reads as a smooth glide to the nearest city rather than a jump.
       const trigger = ScrollTrigger.create({
         trigger: section,
         start: 'top top',
@@ -61,8 +67,18 @@ export function EarthJourneyScene() {
         anticipatePin: 1,
         // Reduced motion still scrubs (progress must stay usable and keyboard/
         // wheel-scrollable), but without the smoothing lag, so nothing keeps
-        // drifting once the user stops scrolling (Part T).
+        // drifting once the user stops scrolling (Part T). Snap is skipped
+        // entirely under reduced motion — an eased auto-glide is itself a
+        // form of motion the user has asked to avoid.
         scrub: prefersReducedMotion ? true : 1,
+        snap: prefersReducedMotion
+          ? undefined
+          : {
+              snapTo: snapPoints,
+              duration: { min: 0.5, max: 1.3 },
+              delay: 0.25,
+              ease: 'power2.inOut',
+            },
         onUpdate: (self) => {
           progressStore.progress = self.progress;
           if (self.progress > 0.002 && !hasScrolled) setHasScrolled(true);
