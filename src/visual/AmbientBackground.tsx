@@ -87,6 +87,35 @@ export function AmbientBackground({ phase, visible = true, storyProgress = 0 }: 
   const pointerTarget = useRef({ x: 0, y: 0 });
   const pointerEased = useRef({ x: 0, y: 0 });
 
+  // §K29: this component is never unmounted (App.tsx mounts it once, for the
+  // whole session) — only its `visible` prop toggles the CSS opacity
+  // crossfade. The draw loop below had no matching check: it kept scheduling
+  // itself at full speed forever, drawing every star every frame, even while
+  // fully invisible for the entire rest of the session once the Earth journey
+  // begins — a second complete animation system permanently competing with
+  // the WebGL Earth scene for the same frame budget, found while chasing a
+  // "flickers/gets worse over time" report. `visibleRef`/`hiddenSinceRef` let
+  // the already-running loop react to `visible` changing without needing to
+  // restart the effect (same ref-not-state reasoning as pointerTarget above).
+  // STOP_AFTER_HIDDEN_MS is a buffer past the opacity tween's own ~5.5s
+  // (1.3s delay + 4.2s duration) fade-out, so the loop keeps animating for
+  // the whole time it's still visibly fading and only stops once it's truly
+  // invisible. This app never navigates backward out of the Earth journey,
+  // so re-starting the loop if `visible` became true again isn't handled —
+  // it structurally can't happen here.
+  const visibleRef = useRef(visible);
+  const hiddenSinceRef = useRef<number | null>(visible ? null : performance.now());
+  const STOP_AFTER_HIDDEN_MS = 6000;
+
+  useEffect(() => {
+    visibleRef.current = visible;
+    if (!visible && hiddenSinceRef.current === null) {
+      hiddenSinceRef.current = performance.now();
+    } else if (visible) {
+      hiddenSinceRef.current = null;
+    }
+  }, [visible]);
+
   useEffect(() => {
     configRef.current = PHASE_CONFIG[phase];
     if (phase === 'space-transition' && dissolveStartRef.current === null) {
@@ -237,7 +266,12 @@ export function AmbientBackground({ phase, visible = true, storyProgress = 0 }: 
       }
 
       ctx.globalAlpha = 1;
-      raf = requestAnimationFrame(draw);
+
+      const hiddenSince = hiddenSinceRef.current;
+      const permanentlyHidden = !visibleRef.current && hiddenSince !== null && time - hiddenSince > STOP_AFTER_HIDDEN_MS;
+      if (!permanentlyHidden) {
+        raf = requestAnimationFrame(draw);
+      }
     }
     raf = requestAnimationFrame(draw);
 
