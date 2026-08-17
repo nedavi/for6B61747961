@@ -7,10 +7,12 @@ export interface TimelineSegment {
   waypoint?: Waypoint; // absent only for the leading 'earth-reveal' segment
 }
 
-// Fixed leading band reserved for the auto Earth reveal + first slow approach
-// (EarthJourneyScene's non-scroll intro beat plus the earliest scroll range) —
-// a constant, never derived from journey.length (ARCHITECTURE.md §8 rule 1).
-const REVEAL_END = 0.16;
+// Fixed leading band reserved for the auto Earth reveal + a held "just Earth"
+// beat before the first waypoint's approach begins (§K19 — exported so
+// CameraRig can hold a static camera frame across this whole band instead of
+// already easing toward the first waypoint from progress 0, see there) — a
+// constant, never derived from journey.length (ARCHITECTURE.md §8 rule 1).
+export const REVEAL_END = 0.16;
 
 /**
  * journey.ts describes WHAT/WHERE; this is the only place that decides WHEN,

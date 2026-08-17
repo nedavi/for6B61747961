@@ -138,13 +138,20 @@ export function WaypointMarker({ waypoint, arrivalAt, segmentWidth, earthMeshRef
       <Html
         center
         occlude={earthMeshRef.current ? [earthMeshRef as RefObject<Mesh>] : undefined}
-        // §K15: raised above DestinationSidebar's z-index (2) — the marker/
+        // §K19: raised above DestinationSidebar's z-index (2) — the marker/
         // label must stay legible even where a waypoint's camera framing
         // happens to place it under the sidebar's screen region (mostly
         // solved by DestinationSidebar now flipping sides per-waypoint, but
         // this is the safety net for whatever it doesn't catch).
         zIndexRange={[3, 1]}
-        distanceFactor={4.2}
+        // §K19: distanceFactor removed — it scaled this element via a CSS 3D
+        // matrix transform based on camera distance, which at this project's
+        // close orbital range produced a large scale-up of an already-small
+        // (14px) rasterized layer, reading as blocky/pixelated text (direct
+        // feedback, an Istanbul screenshot). Html without distanceFactor
+        // renders at a fixed CSS pixel size instead — always native-crisp
+        // regardless of camera distance, and as a side effect no longer
+        // oversized on closer waypoints either.
         style={{ pointerEvents: 'none' }}
       >
         <div className="waypoint-marker">
