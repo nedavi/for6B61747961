@@ -598,7 +598,7 @@ body {
    where the pin sits relative to the real lat/lng. */
 .waypoint-marker {
   position: relative;
-  width: 14px;
+  width: 20px;
   height: 0;
   pointer-events: none;
 }
@@ -608,8 +608,12 @@ body {
   position: absolute;
   left: 50%;
   bottom: 0;
-  width: 14px;
-  height: 28px;
+  /* §K20: 14×28 → 20×40 — matches PinGlyph's own enlarged viewBox
+     (WaypointMarker.tsx), real native pixels rather than a CSS scale on the
+     old small artwork, now that distanceFactor (§K19) no longer applies any
+     scaling transform of its own on top of this. */
+  width: 20px;
+  height: 40px;
   filter: drop-shadow(0 0 7px rgba(243, 237, 228, 0.45)) drop-shadow(0 1px 4px rgba(0, 0, 0, 0.5));
   opacity: 0;
   transform: translateX(-50%) scale(0.75);
@@ -619,9 +623,13 @@ body {
 .waypoint-marker__label {
   position: absolute;
   left: 50%;
-  top: 6px;
+  top: 8px;
   transform: translateX(-50%);
-  font-size: var(--text-label);
+  /* §K20: var(--text-label) (14px) → var(--text-body) (18px) — direct
+     feedback that, once distanceFactor (§K19) stopped scaling the label up,
+     it read as too small/hard to see at its own native size. Reusing an
+     existing type-scale step rather than an arbitrary new number. */
+  font-size: var(--text-body);
   letter-spacing: var(--tracking-label);
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
@@ -637,16 +645,16 @@ body {
   }
 
   .waypoint-marker__label {
-    font-size: 12px;
+    font-size: 15px;
   }
 
   .waypoint-marker {
-    width: 11px;
+    width: 16px;
   }
 
   .waypoint-marker__pin {
-    width: 11px;
-    height: 22px;
+    width: 16px;
+    height: 32px;
   }
 }
 

@@ -53,19 +53,25 @@ function arrivalEnvelope(progress: number, arrivalAt: number, fadeIn: number, ho
 // from the surface point, a hairline ring, and a bright center dot — closer
 // to a radar/target glyph than a map pin. Still not tinted with any accent
 // color ("no colored UI" — a direct earlier decision, see ARCHITECTURE.md §K8).
+// §K20: viewBox enlarged 14×28 → 20×40 (all coordinates scaled by the same
+// 10/7 factor, not just the container CSS size) — direct feedback that once
+// distanceFactor (§K19) stopped scaling the marker up, the glyph read as too
+// small at its native size. Real extra source pixels, not a blind CSS
+// stretch of the old small artwork, which is exactly the kind of upscale
+// that caused §K19's pixelation in the first place.
 function PinGlyph() {
   return (
-    <svg width="14" height="28" viewBox="0 0 14 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width="20" height="40" viewBox="0 0 20 40" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <radialGradient id="waypoint-pin-bloom" cx="50%" cy="21%" r="65%">
           <stop offset="0%" stopColor="#f3ede4" stopOpacity="0.45" />
           <stop offset="100%" stopColor="#f3ede4" stopOpacity="0" />
         </radialGradient>
       </defs>
-      <circle cx="7" cy="6" r="8" fill="url(#waypoint-pin-bloom)" />
-      <line x1="7" y1="11.4" x2="7" y2="27" stroke="#f3ede4" strokeWidth="1.1" strokeOpacity="0.8" strokeLinecap="round" />
-      <circle cx="7" cy="6" r="5" fill="none" stroke="#f3ede4" strokeWidth="1.2" strokeOpacity="0.9" />
-      <circle cx="7" cy="6" r="1.6" fill="#f3ede4" />
+      <circle cx="10" cy="8.6" r="11.4" fill="url(#waypoint-pin-bloom)" />
+      <line x1="10" y1="16.3" x2="10" y2="38.6" stroke="#f3ede4" strokeWidth="1.6" strokeOpacity="0.8" strokeLinecap="round" />
+      <circle cx="10" cy="8.6" r="7.1" fill="none" stroke="#f3ede4" strokeWidth="1.7" strokeOpacity="0.9" />
+      <circle cx="10" cy="8.6" r="2.3" fill="#f3ede4" />
     </svg>
   );
 }

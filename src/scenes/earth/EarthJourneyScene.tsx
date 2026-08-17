@@ -5,7 +5,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useExperience } from '../../state/ExperienceContext';
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion';
 import { journey } from '../../data/journey';
-import { buildTimeline } from '../../data/timeline';
+import { buildTimeline, REVEAL_END } from '../../data/timeline';
 import { progressStore } from '../../three/progressStore';
 import { CityPostcard } from './CityPostcard';
 import { DestinationSidebar } from './DestinationSidebar';
@@ -33,7 +33,19 @@ export function EarthJourneyScene() {
   // and CityPostcard/DestinationSidebar treat as `arrivalAt`. Re-adding this
   // after §K15 removed it entirely — see the ScrollTrigger config below for
   // why this round is tuned not to repeat the earlier jerkiness.
-  const snapPoints = useRef(timeline.filter((segment) => segment.waypoint).map((segment) => segment.end)).current;
+  // §K20: `0` and `REVEAL_END` prepended — without a snap target anywhere
+  // near the start, GSAP's snap had nothing to land on below Beijing's
+  // arrival (~0.243), so ANY scroll at all, even a small nudge, snapped
+  // forward the FULL distance to Beijing once the pointer paused — direct
+  // feedback that the "just Earth + scroll hint" opening beat (§K19) was
+  // gone again, and this snap gap is why: §K19's camera hold existed, but
+  // snap was yanking scroll progress straight past it regardless. Two early
+  // targets now give gentle scrolling somewhere to actually rest.
+  const snapPoints = useRef([
+    0,
+    REVEAL_END,
+    ...timeline.filter((segment) => segment.waypoint).map((segment) => segment.end),
+  ]).current;
 
   // The scroll hint appears only once Earth's own auto-reveal has finished —
   // before that, scroll may already work (progress just starts at 0), but the
