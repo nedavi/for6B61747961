@@ -1,8 +1,9 @@
-// Restrained Fresnel rim glow — the classic "atmosphere sphere" technique
-// (BackSide, additive blending, slightly larger radius than Earth): glow
-// strength grows toward the grazing-angle limb, and is further weighted by
-// the same sun direction Earth's shader uses so the glow reads brightest on
-// the lit side rather than uniformly all the way around.
+// Fresnel rim, normal-blended against a thin shell (BackSide, ~1.4% larger
+// than Earth) — §K18 recalibrated this after inspecting the reference GLB
+// directly rather than guessing again: alpha now means "how much this pixel
+// mixes toward the atmosphere color," not "how much brightness to add," so
+// the numbers below are opacities (small near the center of the disc, larger
+// toward the grazing limb), not an intensity ceiling.
 export const atmosphereVertexShader = /* glsl */ `
 varying vec3 vNormalV;
 varying vec3 vNormalW;
@@ -23,29 +24,25 @@ varying vec3 vNormalV;
 varying vec3 vNormalW;
 
 void main() {
-  // §K17: reversed direction from §K16. Direct feedback after that pass was
-  // that the glow was washing across most of the visible disc rather than
-  // hugging the limb — the real culprit was the falloff exponent, not the
-  // intensity numbers alone: at 2.2, "rim" is already well above zero
-  // across a large fraction of the sphere's face, not just near the grazing
-  // edge, so a bright chunk of the "atmosphere" was really sitting on top of
-  // ordinary Earth surface. Narrowed back (2.2→3.0, tighter than even §K13's
-  // 3.4→2.2 starting point was aiming to loosen) so the glow reads as a rim,
-  // not a haze over the disc.
   float grazing = clamp(1.0 - abs(dot(vNormalV, vec3(0.0, 0.0, 1.0))), 0.0, 1.0);
   float rim = pow(grazing, 3.0);
 
-  // Ceiling cut hard (3.2→1.6) and floor cut even harder (0.28→0.1) — the
-  // floor specifically, since it applies regardless of sun angle: at 0.28
-  // the rim was glowing almost as brightly on the UNLIT side as the lit one,
-  // which fights directly against "dark side should be dark."
+  // Reference GLB's own atmosphere material is a flat, mostly-uniform 0.25
+  // alpha (not view-angle-dependent at all — its "brighter at the limb"
+  // look comes from the real transmission ray traveling a longer path
+  // through the shell there, a physical effect we can't replicate with a
+  // flat-shaded sphere). This Fresnel term stands in for that path-length
+  // cue instead: barely-there near the center of the disc (0.02), rising to
+  // a visible-but-still-translucent rim (0.5) at the true grazing edge —
+  // opacities, not brightness, so this can never light up what's behind it.
   float sunFactor = smoothstep(-0.3, 0.5, dot(normalize(vNormalW), normalize(sunDirection)));
-  float intensity = rim * mix(0.1, 1.6, sunFactor);
+  float alpha = mix(0.02, 0.5, rim) * mix(0.18, 1.0, sunFactor);
 
-  // Pulled back toward the base blue (0.35→0.25) — less flat-white wash,
-  // more a thin colored rim.
-  vec3 color = mix(glowColor, vec3(0.96, 0.98, 1.0), 0.25);
+  // glowColor is now the reference's own measured blue (#245aad, see
+  // AtmosphereGlow.tsx) — only lightened slightly toward the limb, not
+  // pushed toward white the way an additive "glow" wants to be.
+  vec3 color = mix(glowColor, vec3(0.75, 0.85, 0.96), rim * 0.35);
 
-  gl_FragColor = vec4(color, intensity * uOpacity);
+  gl_FragColor = vec4(color, alpha * uOpacity);
 }
 `;
