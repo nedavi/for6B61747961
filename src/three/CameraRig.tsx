@@ -2,7 +2,7 @@ import { useMemo, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { PerspectiveCamera, Quaternion, Vector3, type Group } from 'three';
 import { EARTH_REVEAL_CAMERA, journey, type CameraPose } from '../data/journey';
-import { buildTimeline, REVEAL_END } from '../data/timeline';
+import { buildTimeline } from '../data/timeline';
 import { quaternionForLatLng } from './latLng';
 import { progressStore } from './progressStore';
 import { revealCameraStore } from './revealCameraStore';
@@ -61,17 +61,19 @@ export function CameraRig({ earthGroupRef }: CameraRigProps) {
     const timeline = buildTimeline(journey);
     const waypointSegments = timeline.filter((segment) => segment.waypoint);
 
-    // §K19: two identical keyframes (0 and REVEAL_END) rather than one —
-    // interpolating between two equal poses/quaternions is a no-op, which is
-    // exactly the point: it holds a genuinely static "just looking at Earth"
-    // frame across the whole reveal band, instead of the previous single-
-    // keyframe setup where the very first scroll pixel already started
-    // easing camera + rotation toward the first waypoint. Direct feedback:
-    // the first waypoint's approach read as beginning immediately rather
-    // than after a beat of just seeing the whole planet.
+    // §K21: reverted §K19's extra REVEAL_END keyframe. That change held the
+    // camera frozen across [0, REVEAL_END] but, as a direct consequence,
+    // compressed the actual travel toward Beijing into the much narrower
+    // [REVEAL_END, Beijing.end] window instead of the full [0, Beijing.end] —
+    // the same total camera/rotation distance covered over noticeably less
+    // scroll, which is exactly what read back as an abrupt lurch once
+    // movement did start. A single keyframe at progress 0 already satisfies
+    // "Earth stands still until the screen opens" on its own — nothing moves
+    // before there's scroll input, regardless of keyframe count — and
+    // interpolating continuously across the whole [0, Beijing.end] span is
+    // what makes the eventual approach read as smooth rather than compressed.
     const frames: CameraKeyframe[] = [
       { progress: 0, quaternion: new Quaternion(), pose: normalizePose(EARTH_REVEAL_CAMERA) },
-      { progress: REVEAL_END, quaternion: new Quaternion(), pose: normalizePose(EARTH_REVEAL_CAMERA) },
     ];
 
     waypointSegments.forEach((segment) => {

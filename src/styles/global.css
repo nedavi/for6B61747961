@@ -598,7 +598,7 @@ body {
    where the pin sits relative to the real lat/lng. */
 .waypoint-marker {
   position: relative;
-  width: 20px;
+  width: 30px;
   height: 0;
   pointer-events: none;
 }
@@ -608,12 +608,11 @@ body {
   position: absolute;
   left: 50%;
   bottom: 0;
-  /* §K20: 14×28 → 20×40 — matches PinGlyph's own enlarged viewBox
-     (WaypointMarker.tsx), real native pixels rather than a CSS scale on the
-     old small artwork, now that distanceFactor (§K19) no longer applies any
-     scaling transform of its own on top of this. */
-  width: 20px;
-  height: 40px;
+  /* §K21: 20×40 → 30×60 — matches PinGlyph's own enlarged viewBox
+     (WaypointMarker.tsx); still real native pixels, not a CSS scale, same
+     reasoning as §K20's original bump. */
+  width: 30px;
+  height: 60px;
   filter: drop-shadow(0 0 7px rgba(243, 237, 228, 0.45)) drop-shadow(0 1px 4px rgba(0, 0, 0, 0.5));
   opacity: 0;
   transform: translateX(-50%) scale(0.75);
@@ -623,13 +622,14 @@ body {
 .waypoint-marker__label {
   position: absolute;
   left: 50%;
-  top: 8px;
+  top: 12px;
   transform: translateX(-50%);
-  /* §K20: var(--text-label) (14px) → var(--text-body) (18px) — direct
-     feedback that, once distanceFactor (§K19) stopped scaling the label up,
-     it read as too small/hard to see at its own native size. Reusing an
-     existing type-scale step rather than an arbitrary new number. */
-  font-size: var(--text-body);
+  /* §K21: var(--text-body) (18px) → var(--text-waypoint) (27px) — §K20's
+     bump still read as too small, direct feedback. --text-waypoint is an
+     existing type-scale token literally named for this purpose (previously
+     only used by DestinationSidebar's heading, §8) — shared, not a new
+     value picked from nowhere. */
+  font-size: var(--text-waypoint);
   letter-spacing: var(--tracking-label);
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
@@ -645,16 +645,16 @@ body {
   }
 
   .waypoint-marker__label {
-    font-size: 15px;
+    font-size: 22px;
   }
 
   .waypoint-marker {
-    width: 16px;
+    width: 24px;
   }
 
   .waypoint-marker__pin {
-    width: 16px;
-    height: 32px;
+    width: 24px;
+    height: 48px;
   }
 }
 

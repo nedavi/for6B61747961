@@ -5,7 +5,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useExperience } from '../../state/ExperienceContext';
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion';
 import { journey } from '../../data/journey';
-import { buildTimeline, REVEAL_END } from '../../data/timeline';
+import { buildTimeline } from '../../data/timeline';
 import { progressStore } from '../../three/progressStore';
 import { CityPostcard } from './CityPostcard';
 import { DestinationSidebar } from './DestinationSidebar';
@@ -28,31 +28,24 @@ export function EarthJourneyScene() {
   const [showScrollHint, setShowScrollHint] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
   const timeline = useRef(buildTimeline(journey)).current;
-  // §K17: snap targets — each waypoint's own arrival point (`segment.end`),
-  // the same value CameraRig treats as "closest approach" (three/CameraRig.tsx)
-  // and CityPostcard/DestinationSidebar treat as `arrivalAt`. Re-adding this
-  // after §K15 removed it entirely — see the ScrollTrigger config below for
-  // why this round is tuned not to repeat the earlier jerkiness.
-  // §K20: `0` and `REVEAL_END` prepended — without a snap target anywhere
-  // near the start, GSAP's snap had nothing to land on below Beijing's
-  // arrival (~0.243), so ANY scroll at all, even a small nudge, snapped
-  // forward the FULL distance to Beijing once the pointer paused — direct
-  // feedback that the "just Earth + scroll hint" opening beat (§K19) was
-  // gone again, and this snap gap is why: §K19's camera hold existed, but
-  // snap was yanking scroll progress straight past it regardless. Two early
-  // targets now give gentle scrolling somewhere to actually rest.
-  const snapPoints = useRef([
-    0,
-    REVEAL_END,
-    ...timeline.filter((segment) => segment.waypoint).map((segment) => segment.end),
-  ]).current;
+  // §K21: snap targets — waypoint arrival points only (`segment.end`), the
+  // same value CameraRig treats as "closest approach" and CityPostcard/
+  // DestinationSidebar treat as `arrivalAt`. §K17 re-added snap after §K15
+  // removed it; §K20 tried patching the opening leg by adding early snap
+  // targets, but that only widened the dead zone before the eventual jump —
+  // still not "смooth." The actual fix is below, in `snapTo`: the opening
+  // reveal→Beijing leg is excluded from snapping entirely now, not given
+  // more snap targets to land on.
+  const waypointArrivals = useRef(timeline.filter((segment) => segment.waypoint).map((segment) => segment.end)).current;
 
-  // The scroll hint appears only once Earth's own auto-reveal has finished —
-  // before that, scroll may already work (progress just starts at 0), but the
-  // hint shouldn't invite scrolling before there's anything to scroll toward.
+  // The scroll hint appears only once Earth's own auto-reveal has finished,
+  // and only after 2s of no scroll input — direct feedback that the previous
+  // 500ms delay fired too early, effectively overlapping the tail of the
+  // non-scroll auto-reveal dolly-in rather than reading as a distinct "now
+  // scroll" beat.
   useEffect(() => {
     if (!state.earthRevealed) return;
-    const timer = window.setTimeout(() => setShowScrollHint(true), 500);
+    const timer = window.setTimeout(() => setShowScrollHint(true), 2000);
     return () => window.clearTimeout(timer);
   }, [state.earthRevealed]);
 
@@ -71,6 +64,31 @@ export function EarthJourneyScene() {
       // a longer `delay` so it only engages once scrolling has genuinely
       // stopped, and a slower, eased `duration` range so the snap itself
       // reads as a smooth glide to the nearest city rather than a jump.
+      //
+      // §K21: `snapTo` is a function, not the plain array §K17/§K20 used —
+      // direct feedback ("резкий рывок к Пекину", "нужно чтобы плавно") is
+      // that the reveal→Beijing leg specifically should never snap at all,
+      // only scrub continuously; snapping only makes sense from one
+      // waypoint's arrival to the next, where "throw me to the nearest
+      // city" (the original ask that brought snap back in §K17) actually
+      // applies. Below `waypointArrivals[0]` (Beijing's own arrival), this
+      // returns the value unchanged — a no-op snap — so that whole leg is
+      // pure 1:1 scroll with no artificial hold or jump; at or beyond it,
+      // ordinary nearest-neighbor snapping among waypoint arrivals resumes.
+      const snapTo = (value: number) => {
+        if (value < waypointArrivals[0]) return value;
+        let nearest = waypointArrivals[0];
+        let minDist = Math.abs(value - nearest);
+        for (const point of waypointArrivals) {
+          const dist = Math.abs(value - point);
+          if (dist < minDist) {
+            minDist = dist;
+            nearest = point;
+          }
+        }
+        return nearest;
+      };
+
       const trigger = ScrollTrigger.create({
         trigger: section,
         start: 'top top',
@@ -86,7 +104,7 @@ export function EarthJourneyScene() {
         snap: prefersReducedMotion
           ? undefined
           : {
-              snapTo: snapPoints,
+              snapTo,
               duration: { min: 0.5, max: 1.3 },
               delay: 0.25,
               ease: 'power2.inOut',

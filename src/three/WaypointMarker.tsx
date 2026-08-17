@@ -53,25 +53,22 @@ function arrivalEnvelope(progress: number, arrivalAt: number, fadeIn: number, ho
 // from the surface point, a hairline ring, and a bright center dot — closer
 // to a radar/target glyph than a map pin. Still not tinted with any accent
 // color ("no colored UI" — a direct earlier decision, see ARCHITECTURE.md §K8).
-// §K20: viewBox enlarged 14×28 → 20×40 (all coordinates scaled by the same
-// 10/7 factor, not just the container CSS size) — direct feedback that once
-// distanceFactor (§K19) stopped scaling the marker up, the glyph read as too
-// small at its native size. Real extra source pixels, not a blind CSS
-// stretch of the old small artwork, which is exactly the kind of upscale
-// that caused §K19's pixelation in the first place.
+// §K21: enlarged again, 20×40 → 30×60 (another real coordinate scale, same
+// reasoning as §K20 — direct feedback that the §K20 size still wasn't big
+// enough to read comfortably).
 function PinGlyph() {
   return (
-    <svg width="20" height="40" viewBox="0 0 20 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width="30" height="60" viewBox="0 0 30 60" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <radialGradient id="waypoint-pin-bloom" cx="50%" cy="21%" r="65%">
           <stop offset="0%" stopColor="#f3ede4" stopOpacity="0.45" />
           <stop offset="100%" stopColor="#f3ede4" stopOpacity="0" />
         </radialGradient>
       </defs>
-      <circle cx="10" cy="8.6" r="11.4" fill="url(#waypoint-pin-bloom)" />
-      <line x1="10" y1="16.3" x2="10" y2="38.6" stroke="#f3ede4" strokeWidth="1.6" strokeOpacity="0.8" strokeLinecap="round" />
-      <circle cx="10" cy="8.6" r="7.1" fill="none" stroke="#f3ede4" strokeWidth="1.7" strokeOpacity="0.9" />
-      <circle cx="10" cy="8.6" r="2.3" fill="#f3ede4" />
+      <circle cx="15" cy="12.9" r="17.1" fill="url(#waypoint-pin-bloom)" />
+      <line x1="15" y1="24.5" x2="15" y2="57.9" stroke="#f3ede4" strokeWidth="2.4" strokeOpacity="0.8" strokeLinecap="round" />
+      <circle cx="15" cy="12.9" r="10.7" fill="none" stroke="#f3ede4" strokeWidth="2.6" strokeOpacity="0.9" />
+      <circle cx="15" cy="12.9" r="3.5" fill="#f3ede4" />
     </svg>
   );
 }
