@@ -1,4 +1,4 @@
-import { useMemo, type RefObject } from 'react';
+import { useMemo, useRef, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { PerspectiveCamera, Quaternion, type Group } from 'three';
 import { EARTH_REVEAL_CAMERA, journey, type CameraPose } from '../data/journey';
@@ -56,6 +56,18 @@ interface CameraRigProps {
 export function CameraRig({ earthGroupRef }: CameraRigProps) {
   const { camera, size } = useThree();
   const prefersReducedMotion = usePrefersReducedMotion();
+  // §K32: last-known-good camera values — a defensive guard against a
+  // theorized cause of the recurring black-flash report that wouldn't throw
+  // a catchable error at all: if any of these ever end up NaN/Infinity for
+  // one frame (from any upstream cause, including ones not yet identified),
+  // `updateProjectionMatrix()` silently produces a degenerate matrix and the
+  // GPU renders nothing for that frame — no exception, just a black frame
+  // that self-corrects the moment valid numbers return. That matches "brief,
+  // recurs during scroll, resolves on its own" better than any mechanism
+  // found so far. Rather than keep hunting for the exact upstream source,
+  // this stops a bad value from ever reaching the camera at all, regardless
+  // of where it came from.
+  const lastGoodRef = useRef({ distance: EARTH_REVEAL_CAMERA.distance, fov: EARTH_REVEAL_CAMERA.fov ?? 45, offsetX: 0, offsetY: 0 });
 
   const keyframes = useMemo<CameraKeyframe[]>(() => {
     const timeline = buildTimeline(journey);
@@ -93,7 +105,14 @@ export function CameraRig({ earthGroupRef }: CameraRigProps) {
     if (!group) return;
 
     const isMobile = size.width < MOBILE_BREAKPOINT;
-    const progress = Math.min(1, Math.max(0, progressStore.progress));
+    // §K32: Math.min/Math.max silently propagate NaN rather than clamping it
+    // away (Math.max(0, NaN) is NaN, not 0) — if progressStore.progress were
+    // ever NaN for any reason, every value derived from it below would be
+    // NaN too, all the way to the camera. Explicit fallback to 0 closes that
+    // gap at the one place all of this reads from a value outside this
+    // component's own control.
+    const rawProgress = progressStore.progress;
+    const progress = Number.isFinite(rawProgress) ? Math.min(1, Math.max(0, rawProgress)) : 0;
 
     let lower = keyframes[0];
     let upper = keyframes[keyframes.length - 1];
@@ -171,16 +190,29 @@ export function CameraRig({ earthGroupRef }: CameraRigProps) {
     const yaw = lerp(lower.pose.lookAtOffset.x, upper.pose.lookAtOffset.x, t) * yawScale;
     const pitch = lerp(lower.pose.lookAtOffset.y, upper.pose.lookAtOffset.y, t) * pitchScale + (isMobile ? 0.1 : 0);
 
+    // §K32: guard against any of these four ending up NaN/Infinity before
+    // they reach the camera — see lastGoodRef's own comment above for why.
+    // Yaw/pitch aren't guarded the same way: they only affect rotateY/
+    // rotateX, which can't produce a degenerate projection matrix the way a
+    // bad fov/distance can, so a bad value there would misdirect the camera
+    // for a frame at worst, not blank the render.
+    const lastGood = lastGoodRef.current;
+    const safeDistance = Number.isFinite(distance) ? distance : lastGood.distance;
+    const safeFov = Number.isFinite(fov) ? fov : lastGood.fov;
+    const safeOffsetX = Number.isFinite(offsetX) ? offsetX : lastGood.offsetX;
+    const safeOffsetY = Number.isFinite(offsetY) ? offsetY : lastGood.offsetY;
+    lastGoodRef.current = { distance: safeDistance, fov: safeFov, offsetX: safeOffsetX, offsetY: safeOffsetY };
+
     // §K27: same fix as the quaternion above — sets/normalizes/scales
     // `camera.position` directly instead of allocating a temporary Vector3
     // every frame to then copy from.
-    camera.position.set(offsetX, offsetY, 1).normalize().multiplyScalar(distance);
+    camera.position.set(safeOffsetX, safeOffsetY, 1).normalize().multiplyScalar(safeDistance);
     camera.lookAt(0, 0, 0);
     camera.rotateY(yaw);
     camera.rotateX(pitch);
 
     if (camera instanceof PerspectiveCamera) {
-      camera.fov = fov + mobileFovBoost;
+      camera.fov = safeFov + mobileFovBoost;
       camera.updateProjectionMatrix();
     }
   });
