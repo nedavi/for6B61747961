@@ -33,13 +33,15 @@ export function IntroScene() {
   return (
     <section className="intro-scene" ref={containerRef}>
       <div className="intro-scene__content">
-        <p className="intro-scene__kicker intro-scene__animate">ДЛЯ ТЕБЯ</p>
+        <p className="intro-scene__kicker intro-scene__animate">С ДНЁМ РОЖДЕНИЯ, КАТЯ</p>
         <h1 className="intro-scene__title intro-scene__animate">
-          У меня есть к тебе
+          Добро пожаловать
           <br />
-          несколько вопросов.
+          в межзвёздное турне.
         </h1>
-        <p className="intro-scene__supporting intro-scene__animate">Долго не думай.</p>
+        <p className="intro-scene__supporting intro-scene__animate">
+          21 вопрос отделяет тебя от того, что я для тебя приготовил.
+        </p>
         <div className="intro-scene__action intro-scene__animate">
           <AnswerChip label="Начать" onSelect={() => dispatch({ type: 'START' })} />
         </div>
