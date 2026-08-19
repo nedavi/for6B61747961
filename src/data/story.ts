@@ -63,65 +63,55 @@ export function getProgress(steps: StoryStep[], index: number): { current: numbe
   return { current, total: beat };
 }
 
-// Prototype copy, Russian — temporary content, will be replaced with the real
-// apartment clue and final copy before launch. See ARCHITECTURE.md §4.
+// Real content for Katya's 21st birthday — 21 steps total (3 choice, 18
+// validated code/riddle), built in batches of 5 per direct instruction.
+// `isFinal` moves to whichever step actually ends up last once all 21 exist —
+// none of the steps below are final yet, more batches are still coming.
 export const story: StoryStep[] = [
   {
-    id: 'disappear',
-    type: 'choice',
-    text: 'Если бы можно было исчезнуть на несколько дней — что бы ты выбрала?',
-    answers: [
-      { id: 'warm', label: 'Туда, где тепло' },
-      { id: 'alive', label: 'Туда, где всё кипит' },
-      { id: 'quiet', label: 'Туда, где тихо' },
-    ],
-  },
-  {
-    id: 'anywhere',
-    type: 'text',
-    text: 'Если бы прямо сейчас можно было оказаться где угодно — куда бы ты отправилась?',
-    placeholder: 'Напиши любое место...',
-    submitLabel: 'Продолжить',
-  },
-  {
-    id: 'matters-more',
-    type: 'choice',
-    text: 'Что для тебя важнее?',
-    answers: [
-      { id: 'place', label: 'Само место' },
-      { id: 'people', label: 'Люди рядом' },
-      { id: 'story', label: 'История, которая останется' },
-    ],
-  },
-  {
-    id: 'physical-clue',
-    type: 'task',
-    eyebrow: 'НЕ ВСЕ ОТВЕТЫ ЕСТЬ НА ЭТОМ ЭКРАНЕ',
-    text: 'Для следующего придётся встать.',
-    instruction: 'Найди место, где ты видишь себя каждый день.',
-    continueLabel: 'Я нашла',
-  },
-  {
-    id: 'clue-code',
+    id: 'school-desk',
     type: 'code',
-    text: 'Что ты там нашла?',
-    placeholder: 'Введи слово...',
-    // Accept both the Latin word and its Russian transliteration — kept
-    // internal only, never rendered (see normalizeAnswer() below).
-    acceptedAnswers: ['orbit', 'орбит'],
+    text: 'Где мы с тобой в детстве сидели за одной партой?',
+    placeholder: 'Напиши одним словом...',
+    acceptedAnswers: ['школа', 'в школе', 'школе'],
     incorrectMessage: 'Не совсем.',
-    hint: 'Посмотри внимательнее на то, что ты нашла.',
     submitLabel: 'Проверить',
-    continuesProgress: true,
   },
   {
-    id: 'trust',
-    type: 'choice',
-    text: 'Последний вопрос. Ты мне доверяешь?',
-    isFinal: true,
-    answers: [
-      { id: 'yes', label: 'Да' },
-      { id: 'think-so', label: 'Кажется, да' },
-    ],
+    id: 'years-together',
+    type: 'code',
+    text: 'Сколько лет мы уже вместе?',
+    placeholder: 'Введи число...',
+    acceptedAnswers: ['6', 'шесть', '6 лет', 'шесть лет'],
+    incorrectMessage: 'Не совсем.',
+    submitLabel: 'Проверить',
+  },
+  {
+    id: 'highheels-teacher',
+    type: 'code',
+    text: 'Как зовут твою преподавательницу по хайхилзу?',
+    placeholder: 'Введи имя...',
+    acceptedAnswers: ['маша', 'мария'],
+    incorrectMessage: 'Не совсем.',
+    submitLabel: 'Проверить',
+  },
+  {
+    id: 'english-teacher',
+    type: 'code',
+    text: 'Как зовут твою преподавательницу по английскому?',
+    placeholder: 'Введи имя...',
+    acceptedAnswers: ['даша', 'дарья'],
+    incorrectMessage: 'Не совсем.',
+    submitLabel: 'Проверить',
+  },
+  {
+    id: 'riddle-map',
+    type: 'code',
+    text: 'Города есть, а домов нет. Леса есть, а деревьев нет. Реки есть, а воды нет. Что это?',
+    placeholder: 'Введи слово...',
+    acceptedAnswers: ['карта'],
+    incorrectMessage: 'Не совсем.',
+    hint: 'То, чем пользуются перед путешествием.',
+    submitLabel: 'Проверить',
   },
 ];
