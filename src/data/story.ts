@@ -144,13 +144,13 @@ export const story: StoryStep[] = [
     ],
   },
   {
-    id: 'blind-direction',
+    id: 'right-now-mood',
     type: 'choice',
-    text: 'Не глядя: куда бы полетела дальше?',
+    text: 'Что из этого — самое твоё прямо сейчас?',
     answers: [
-      { id: 'east', label: 'Восток' },
-      { id: 'south', label: 'Юг' },
-      { id: 'you-choose', label: 'Куда скажешь' },
+      { id: 'dance', label: 'Потанцевать' },
+      { id: 'hug', label: 'Свернуться в обнимашки' },
+      { id: 'snack', label: 'Съесть что-то вкусное' },
     ],
   },
   {
@@ -177,6 +177,17 @@ export const story: StoryStep[] = [
     text: 'Что можно поймать, но нельзя бросить?',
     placeholder: 'Введи слово...',
     acceptedAnswers: ['простуда'],
+    incorrectMessage: 'Не совсем.',
+    submitLabel: 'Проверить',
+  },
+  {
+    id: 'gift-hint-word',
+    type: 'code',
+    text: 'Каким словом-подсказкой я как-то намекнул тебе, что будет за подарок?',
+    placeholder: 'Введи слово...',
+    // Two accepted — not certain which exact word was actually used, so both
+    // count.
+    acceptedAnswers: ['холодный', 'железный'],
     incorrectMessage: 'Не совсем.',
     submitLabel: 'Проверить',
   },
