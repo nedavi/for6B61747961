@@ -274,4 +274,14 @@ export const story: StoryStep[] = [
     submitLabel: 'Проверить',
     continuesProgress: true,
   },
+  {
+    id: 'ready',
+    type: 'choice',
+    text: 'Последний вопрос. Ты готова?',
+    isFinal: true,
+    answers: [
+      { id: 'yes', label: 'Да' },
+      { id: 'ready-as-never', label: 'Готова, как никогда' },
+    ],
+  },
 ];
