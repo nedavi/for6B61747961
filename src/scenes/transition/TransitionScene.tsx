@@ -40,7 +40,7 @@ export function TransitionScene() {
   return (
     <section className="transition-scene" ref={containerRef} aria-hidden="true">
       <p className="transition-scene__line" ref={line1Ref}>
-        Хорошо.
+        Выбери то, что тебе больше всего нравится, и дай мне знать.
       </p>
       <p className="transition-scene__line" ref={line2Ref}>
         Тогда есть ещё кое-что.
